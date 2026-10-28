@@ -1,0 +1,23 @@
+{
+  "op_name": "LogSumExpFwdOpSimd",
+  "op_slug": "logsumexp_simd",
+  "family": "reduction",
+  "gpu_repo_root": "/home/z00875089/TileOPs-fork",
+  "kernel_class_name": "LogSumExpSimdKernel",
+  "op_class_name": "LogSumExpFwdOpSimd",
+  "test_path": "tests/ops/test_logsumexp_simd.py",
+  "test_slug": "logsumexp_simd",
+  "bench_path": "benchmarks/ops/bench_logsumexp_simd.py",
+  "bench_slug": "logsumexp_simd",
+  "wrapper_path": "tileops/kernels/reduction/logsumexp_simd/logsumexp_simd.py",
+  "extracted_file": "tileops/kernels/reduction/logsumexp_simd/_log_sum_exp_fwd_kernels.py",
+  "extracted_functions": [
+    "_logsumexp_kernel_single",
+    "_logsumexp_kernel_tiled"
+  ],
+  "programming_mode": "simd",
+  "auto_schedule": "yes",
+  "variant_of": "LogSumExpFwdOp",
+  "gpu_source_op": "LogSumExpFwdOp",
+  "created_at": "2026-10-17T05:29:27Z"
+}

@@ -1,0 +1,60 @@
+{
+  "artifact_hashes": {
+    "examples/pilot/silu/DESIGN.md": "cf1c34da1885046a571e80b81000c4df01e888d399762e92492206f7c01b78bb",
+    "examples/pilot/silu/REVIEW.md": "a44ee071be596614aeb38ea3ee14ed94a54a9b4dc119f113732552a611f7fd61",
+    "examples/pilot/silu/silu.py": "6ff9b11d2fb8906169c27553777c047977f3e399407a1c963da8d6891b7f7dca"
+  },
+  "budget": {
+    "max_stage4_experiments": null,
+    "max_subagent_dispatches": null,
+    "max_wallclock_s": null
+  },
+  "current_stage": 3,
+  "design_md_path": "examples/pilot/silu/DESIGN.md",
+  "env_check_passed": false,
+  "failure_reason": null,
+  "final_artifact": "examples/pilot/silu/silu.py",
+  "kernel_opt_py_path": "examples/pilot/silu/perf_opt/silu.py",
+  "kernel_py_path": "examples/pilot/silu/silu.py",
+  "last_failure_reason": null,
+  "last_updated": "2026-10-16T03:43:33Z",
+  "max_retry": 3,
+  "migration_mode": null,
+  "operator_name": "silu",
+  "perf_feedback": null,
+  "perf_iteration": {
+    "consecutive_no_improvement": 0,
+    "count": 0,
+    "last_improvement": 0.0
+  },
+  "perf_tuning_requested": null,
+  "phase": "DONE",
+  "project_name": "pilot",
+  "retry_count": 0,
+  "review_md_path": "examples/pilot/silu/REVIEW.md",
+  "scenario": "new_op",
+  "stage3_failure_breakdown": {
+    "precision_fail": 0,
+    "runtime_fail": 0
+  },
+  "stage_plan": [
+    1,
+    2,
+    3
+  ],
+  "stage_retry_count": {
+    "0": 0,
+    "1": 1,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0
+  },
+  "stage_status": {
+    "1": "completed",
+    "2": "completed",
+    "3": "completed"
+  },
+  "task_id": "pilot-silu-20261016T025344Z",
+  "user_requirement": "silu(x) = x * sigmoid(x)，输入 [128, 1024] float16，输出同输入；编程模式 simt，auto_schedule yes"
+}

@@ -1,0 +1,696 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-19T10:59:04.737649+08:00",
+  "profiling_mode_requested": "msprof",
+  "environment": [
+    "- **Torch version**: 2.10.0+cpu",
+    "- **torch_npu version**: 2.10.0.post5.dev20260815",
+    "- **NPU model**: Ascend950PR_9579",
+    "- **NPU count**: 2"
+  ],
+  "records": [
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-99d54b76f51a",
+      "config": {
+        "block_m": 16,
+        "tile_n": 0
+      },
+      "label": "attn-weights-4k",
+      "params": {
+        "dtype": "float16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          32,
+          32,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 62.96,
+        "bandwidth_tbs": 0.8346340049864903,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 10.053096267190568,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 720074,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.6296,
+          "aiv_mte3": 0.1731,
+          "aiv_scalar": 0.0652,
+          "aiv_vec": 0.3757
+        },
+        "prof_mode": "msprof",
+        "tflops": 1.668860573309575
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-18853e253d2d",
+      "config": {
+        "block_m": 16,
+        "tile_n": 0
+      },
+      "label": "attn-weights-4k",
+      "params": {
+        "dim": -1,
+        "dtype": "float16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 59.97,
+          "bandwidth_tbs": 0.17088762205768687,
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_us": 49.100431610942245,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 2974768,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_mte2",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.5997,
+            "aiv_mte3": 0.1882,
+            "aiv_scalar": 0.2894,
+            "aiv_vec": 0.392
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.3416918232600857
+        },
+        "shape": [
+          32,
+          32,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 59.97,
+        "bandwidth_tbs": 0.17088762205768687,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 49.100431610942245,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 2974768,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.5997,
+          "aiv_mte3": 0.1882,
+          "aiv_scalar": 0.2894,
+          "aiv_vec": 0.392
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.3416918232600857
+      },
+      "tag": "torch"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-e9076efbddf0",
+      "config": {
+        "block_m": 16,
+        "tile_n": 0
+      },
+      "label": "attn-weights-4k",
+      "params": {
+        "dtype": "bfloat16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          32,
+          32,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 59.74,
+        "bandwidth_tbs": 0.8239505351017904,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 10.18344626593807,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 710953,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.5974,
+          "aiv_mte3": 0.1478,
+          "aiv_scalar": 0.0844,
+          "aiv_vec": 0.3799
+        },
+        "prof_mode": "msprof",
+        "tflops": 1.6474988488049465
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-f3219ad94dd3",
+      "config": {
+        "block_m": 16,
+        "tile_n": 0
+      },
+      "label": "attn-weights-4k",
+      "params": {
+        "dim": -1,
+        "dtype": "bfloat16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 60.98,
+          "bandwidth_tbs": 0.26308158828090267,
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_us": 31.893740853658535,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 2924996,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_mte2",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.6098,
+            "aiv_mte3": 0.1921,
+            "aiv_scalar": 0.2815,
+            "aiv_vec": 0.3981
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.526034750109142
+        },
+        "shape": [
+          32,
+          32,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 60.98,
+        "bandwidth_tbs": 0.26308158828090267,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 31.893740853658535,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 2924996,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.6098,
+          "aiv_mte3": 0.1921,
+          "aiv_scalar": 0.2815,
+          "aiv_vec": 0.3981
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.526034750109142
+      },
+      "tag": "torch"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-be7664371b7d",
+      "config": {
+        "block_m": 1,
+        "tile_n": 16384
+      },
+      "label": "attn-weights-32k",
+      "params": {
+        "dtype": "bfloat16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          32,
+          32,
+          32768
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 75.15,
+        "bandwidth_tbs": 1.3029615714073814,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 51.50644,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 4011527,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.7515,
+          "aiv_mte3": 0.228,
+          "aiv_scalar": 0.0262,
+          "aiv_vec": 0.5038
+        },
+        "prof_mode": "msprof",
+        "tflops": 2.605843618778545
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-9c22acb5ed52",
+      "config": {
+        "block_m": 1,
+        "tile_n": 16384
+      },
+      "label": "attn-weights-32k",
+      "params": {
+        "dim": -1,
+        "dtype": "bfloat16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 94.1,
+          "bandwidth_tbs": 0.16985015139005008,
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_us": 395.11835256410257,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 31688577,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_mte2",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.941,
+            "aiv_mte3": 0.5379,
+            "aiv_scalar": 0.1041,
+            "aiv_vec": 0.1843
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.3396899362659319
+        },
+        "shape": [
+          32,
+          32,
+          32768
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 94.1,
+        "bandwidth_tbs": 0.16985015139005008,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 395.11835256410257,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 31688577,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.941,
+          "aiv_mte3": 0.5379,
+          "aiv_scalar": 0.1041,
+          "aiv_vec": 0.1843
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.3396899362659319
+      },
+      "tag": "torch"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-d6942e0a39f6",
+      "config": {
+        "block_m": 1,
+        "tile_n": 25600
+      },
+      "label": "lm-head-logits",
+      "params": {
+        "dtype": "float16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          4,
+          102400
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 56.35,
+        "bandwidth_tbs": 0.14585412691372474,
+        "bottleneck_pipe": "aiv_scalar",
+        "latency_us": 5.6166254416961126,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 103167,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_scalar",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.2101,
+          "aiv_mte3": 0.0128,
+          "aiv_scalar": 0.5635,
+          "aiv_vec": 0.2452
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.29170540514185234
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-8474813320c5",
+      "config": {
+        "block_m": 1,
+        "tile_n": 25600
+      },
+      "label": "lm-head-logits",
+      "params": {
+        "dim": -1,
+        "dtype": "float16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 32.01,
+          "bandwidth_tbs": 0.028007533019461087,
+          "bottleneck_pipe": "aiv_scalar",
+          "latency_us": 29.249559375,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 1381452,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_scalar",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.2339,
+            "aiv_mte3": 0.0638,
+            "aiv_scalar": 0.3201,
+            "aiv_vec": 0.1073
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.05601451902213484
+        },
+        "shape": [
+          4,
+          102400
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 32.01,
+        "bandwidth_tbs": 0.028007533019461087,
+        "bottleneck_pipe": "aiv_scalar",
+        "latency_us": 29.249559375,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 1381452,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_scalar",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.2339,
+          "aiv_mte3": 0.0638,
+          "aiv_scalar": 0.3201,
+          "aiv_vec": 0.1073
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.05601451902213484
+      },
+      "tag": "torch"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-435bf24c91dd",
+      "config": {
+        "block_m": 1,
+        "tile_n": 25600
+      },
+      "label": "lm-head-logits",
+      "params": {
+        "dtype": "bfloat16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          4,
+          102400
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 59.26,
+        "bandwidth_tbs": 0.10528684666274672,
+        "bottleneck_pipe": "aiv_scalar",
+        "latency_us": 7.780725,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 80730,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_scalar",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.2673,
+          "aiv_mte3": 0.018,
+          "aiv_scalar": 0.5926,
+          "aiv_vec": 0.2881
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.21057163696185124
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-58b77bebaa7e",
+      "config": {
+        "block_m": 1,
+        "tile_n": 25600
+      },
+      "label": "lm-head-logits",
+      "params": {
+        "dim": -1,
+        "dtype": "bfloat16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 31.68,
+          "bandwidth_tbs": 0.027847368756373045,
+          "bottleneck_pipe": "aiv_scalar",
+          "latency_us": 29.41778834355828,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 1278773,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_scalar",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.2396,
+            "aiv_mte3": 0.0681,
+            "aiv_scalar": 0.3168,
+            "aiv_vec": 0.0978
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.05569419362413648
+        },
+        "shape": [
+          4,
+          102400
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 31.68,
+        "bandwidth_tbs": 0.027847368756373045,
+        "bottleneck_pipe": "aiv_scalar",
+        "latency_us": 29.41778834355828,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 1278773,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_scalar",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.2396,
+          "aiv_mte3": 0.0681,
+          "aiv_scalar": 0.3168,
+          "aiv_vec": 0.0978
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.05569419362413648
+      },
+      "tag": "torch"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-6b30e6773334",
+      "config": {
+        "block_m": 4,
+        "tile_n": 0
+      },
+      "label": "3d-multidim-reduce",
+      "params": {
+        "dtype": "float16",
+        "op_params": {
+          "dim": [
+            0,
+            2
+          ]
+        },
+        "shape": [
+          4,
+          128,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 45.18,
+        "bandwidth_tbs": 0.4212833795997579,
+        "bottleneck_pipe": "aiv_mte3",
+        "latency_us": 9.956623505976095,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 536124,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte3",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.245,
+          "aiv_mte3": 0.4518,
+          "aiv_scalar": 0.0935,
+          "aiv_vec": 0.217
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.8425153361443313
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "case_id": "LogSumExpFwdOpSimd-5f639eb7a6ef",
+      "config": {
+        "block_m": 4,
+        "tile_n": 0
+      },
+      "label": "3d-multidim-reduce",
+      "params": {
+        "dim": [
+          0,
+          2
+        ],
+        "dtype": "float16",
+        "keepdim": false,
+        "op_params": {
+          "dim": [
+            0,
+            2
+          ]
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 44.51,
+          "bandwidth_tbs": 0.10978632117208864,
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_us": 38.206581250000006,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 2263819,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_mte2",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.4451,
+            "aiv_mte3": 0.128,
+            "aiv_scalar": 0.2955,
+            "aiv_vec": 0.1705
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.2195592415115655
+        },
+        "shape": [
+          4,
+          128,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 44.51,
+        "bandwidth_tbs": 0.10978632117208864,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 38.206581250000006,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 2263819,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.4451,
+          "aiv_mte3": 0.128,
+          "aiv_scalar": 0.2955,
+          "aiv_vec": 0.1705
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.2195592415115655
+      },
+      "tag": "torch"
+    }
+  ]
+}

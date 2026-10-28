@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-17T08:46:36.012380+08:00",
+  "profiling_mode_requested": "msprof",
+  "environment": [
+    "- **Torch version**: 2.10.0+cpu",
+    "- **torch_npu version**: 2.10.0.post5.dev20260815",
+    "- **NPU model**: Ascend950PR_9579",
+    "- **NPU count**: 2"
+  ],
+  "records": [
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-be7664371b7d",
+      "config": {
+        "block_m": 1,
+        "tile_n": 16384
+      },
+      "label": "attn-weights-32k",
+      "params": {
+        "dtype": "bfloat16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          32,
+          32,
+          32768
+        ]
+      },
+      "result": {
+        "bandwidth_tbs": 0.01611590421937504,
+        "latency_us": 4164.266,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)"
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.03223082483203523
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-9632b118f0c9",
+      "config": {
+        "block_m": 1,
+        "tile_n": 16384
+      },
+      "label": "attn-weights-32k",
+      "params": {
+        "dim": -1,
+        "dtype": "bfloat16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "bandwidth_tbs": 0.10801451308698513,
+          "latency_us": 621.3138409090909,
+          "msprof": {
+            "backend": "msprof",
+            "latency_source": "do_bench(msprof)"
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.21602243369247331
+        },
+        "shape": [
+          32,
+          32,
+          32768
+        ]
+      },
+      "result": {
+        "bandwidth_tbs": 0.10801451308698513,
+        "latency_us": 621.3138409090909,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)"
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.21602243369247331
+      },
+      "tag": "torch"
+    }
+  ]
+}

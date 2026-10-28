@@ -1,0 +1,47 @@
+PR workflow for tilelang-fork (upstream: tile-ai/tilelang)
+
+1) Branch sync
+- git fetch upstream
+- git checkout <feature-branch>
+- git rebase upstream/main
+- keep history linear for review; resolve conflicts in fork-owned paths
+  (examples/ and docs/ are upstream-synced areas, keep local additions out
+  of upstream paths where possible)
+
+2) Local validation
+- run focused tests for the changed area first, then the containing suite
+  (python -m pytest path/to/test.py)
+- mandatory pre-PR format validation from repo root:
+	bash format.sh --files <changed_file>...
+- inspect every formatter change; keep only changes that belong to this PR
+- run git diff --check
+
+3) Commit and push
+- focused commits only; no unrelated cleanup or generated files
+- commit prefix: bracketed component tag first, e.g.
+	[BugFix][JIT] ...   [BugFix][Transform] ...   [BugFix][Windows] ...
+	[Feature][Autotune] ...
+	[Ascend] ...  [ROCm] ...  [CPU] ...  [CUDA] ...
+	[Codegen] ...  [Test] ...  [Docs] ...  [Chore] ...  [Maint] ...
+  (see `git log --oneline` for live examples; Ascend changes use [Ascend])
+- git push origin <feature-branch>
+
+4) PR creation
+- target: tile-ai/tilelang main (this repo is a fork, origin is the fork remote)
+- PR readiness checks (scoped diff, test portability, build freshness,
+  validation recording, post-push verification): follow the
+  tilelang-submit-pr skill — it is the authority, do not duplicate its list here
+- PR text: concise English, bracketed component tags in title, list only
+  completed validation
+- for an existing PR, push its current head branch instead of opening a
+  duplicate
+
+5) CI tracking
+- verify the PR's reported head SHA equals the pushed commit
+- report newly triggered checks as pending / passing / failing separately
+- fix failures promptly; do not wait silently
+
+Reference docs
+- CONTRIBUTING.md (testing policy, coding style, pre-commit)
+- docs/developer_guide/testing_style.md, docs/developer_guide/cpp_style.md
+- .github/workflows/ci.yml (CI matrix)

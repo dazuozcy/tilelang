@@ -1,0 +1,64 @@
+[project]
+name = "tileops"
+version = "0.1.0"
+description = "Ascend A5 benchmark framework for TileLang operators (framework layer; A5 kernels are generated end-to-end by tilelang-op-conductor)."
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "torch>=2.1.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+# The reporting CLI module is landed by the parallel reporting/benchmark
+# port; until then the entry point resolves only at invocation time.
+tileops-report = "tileops.reporting.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-xdist>=3.0",
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tileops*"]
+
+[tool.setuptools.package-data]
+tileops = ["manifest/*.yaml", "reporting/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "benchmarks"]
+python_files = ["test_*.py", "bench_*.py"]
+markers = [
+    "smoke: fast critical-path tests",
+    "full: standard correctness coverage",
+    "nightly: exhaustive or long-running coverage",
+    "packaging: minimal install sanity check",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "SIM", "I", "N", "RUF022"]
+ignore = [
+    "E741",
+    "E501",
+    "SIM118",
+    "B019",
+    "E902",
+    "N812",
+    "N801",
+    "N802",
+    "N803",
+    "N806",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tileops", "workloads"]

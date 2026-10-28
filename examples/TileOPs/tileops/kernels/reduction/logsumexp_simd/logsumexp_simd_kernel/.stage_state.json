@@ -1,0 +1,54 @@
+{
+  "artifact_hashes": {
+    "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/perf_opt/LogSumExpFwdOpSimd.py": "5aa7f39e3639018a12785ccdbe144eba48578c0263bffec0b0e4a793dcfb1168"
+  },
+  "budget": {
+    "max_stage4_experiments": null,
+    "max_subagent_dispatches": null,
+    "max_wallclock_s": null
+  },
+  "current_stage": 4,
+  "design_md_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/DESIGN.md",
+  "env_check_passed": false,
+  "failure_reason": null,
+  "final_artifact": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/perf_opt/LogSumExpFwdOpSimd.py",
+  "kernel_opt_py_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/perf_opt/LogSumExpFwdOpSimd.py",
+  "kernel_py_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel",
+  "last_failure_reason": null,
+  "last_updated": "2026-10-19T00:48:47Z",
+  "max_retry": 3,
+  "migration_mode": null,
+  "operator_name": "LogSumExpFwdOpSimd",
+  "perf_feedback": null,
+  "perf_iteration": {
+    "consecutive_no_improvement": 0,
+    "count": 0,
+    "last_improvement": 0.0
+  },
+  "perf_tuning_requested": null,
+  "phase": "DONE",
+  "project_name": "logsumexp_simd",
+  "retry_count": 0,
+  "review_md_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/REVIEW.md",
+  "scenario": "optimize",
+  "stage3_failure_breakdown": {
+    "precision_fail": 0,
+    "runtime_fail": 0
+  },
+  "stage_plan": [
+    4
+  ],
+  "stage_retry_count": {
+    "0": 0,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 1,
+    "5": 0
+  },
+  "stage_status": {
+    "4": "completed"
+  },
+  "task_id": "logsumexp_simd-LogSumExpFwdOpSimd-20261017T113205Z",
+  "user_requirement": "optimize 场景：TileOPs 集成算子 LogSumExpFwdOpSimd（reduction/logsumexp_simd，双 kernel _logsumexp_kernel_single + _logsumexp_kernel_tiled，simd/auto_schedule yes，Stage 3 已 PRECISION_PASS 且集成 report 全绿）。目标 best_effort（针对每个 workload 尽力调优，SIMD 变体无先例实测，甜点未知，需实测扫描）；benchmark 入口 examples/TileOPs/benchmarks/ops/bench_logsumexp_simd.py::test_logsumexp_simd_bench。严禁改动现有 SIMT 版本（tileops/kernels/reduction/logsumexp/）。"
+}

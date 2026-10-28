@@ -1,0 +1,60 @@
+{
+  "artifact_hashes": {
+    "examples/pilot/online_softmax/DESIGN.md": "fadf00f9a98eb00cf9612378552b25604f64c51a14409708a6de74130a204e11",
+    "examples/pilot/online_softmax/REVIEW.md": "113f7526c67c0ca152bebf5630ea7c631a38a69858baadd33f626bed9f55279a",
+    "examples/pilot/online_softmax/online_softmax.py": "3f5c42f134d0ce14bd69d290b86b800ba30c5c4b051d15d513da6d45ddbdcd9d"
+  },
+  "budget": {
+    "max_stage4_experiments": null,
+    "max_subagent_dispatches": null,
+    "max_wallclock_s": null
+  },
+  "current_stage": 3,
+  "design_md_path": "examples/pilot/online_softmax/DESIGN.md",
+  "env_check_passed": false,
+  "failure_reason": null,
+  "final_artifact": "examples/pilot/online_softmax/online_softmax.py",
+  "kernel_opt_py_path": "examples/pilot/online_softmax/perf_opt/online_softmax.py",
+  "kernel_py_path": "examples/pilot/online_softmax/online_softmax.py",
+  "last_failure_reason": null,
+  "last_updated": "2026-10-16T06:36:43Z",
+  "max_retry": 3,
+  "migration_mode": "plain",
+  "operator_name": "online_softmax",
+  "perf_feedback": null,
+  "perf_iteration": {
+    "consecutive_no_improvement": 0,
+    "count": 0,
+    "last_improvement": 0.0
+  },
+  "perf_tuning_requested": null,
+  "phase": "DONE",
+  "project_name": "pilot",
+  "retry_count": 0,
+  "review_md_path": "examples/pilot/online_softmax/REVIEW.md",
+  "scenario": "migration",
+  "stage3_failure_breakdown": {
+    "precision_fail": 0,
+    "runtime_fail": 1
+  },
+  "stage_plan": [
+    1,
+    2,
+    3
+  ],
+  "stage_retry_count": {
+    "0": 0,
+    "1": 0,
+    "2": 0,
+    "3": 1,
+    "4": 0,
+    "5": 0
+  },
+  "stage_status": {
+    "1": "completed",
+    "2": "completed",
+    "3": "completed"
+  },
+  "task_id": "pilot-online_softmax-20261016T044814Z",
+  "user_requirement": "迁移 GPU TileLang 算子 examples/online_softmax/online_softmax.py（online softmax，fp16 [8192,8192]，T.Kernel threads=128 + fragment + reduce_max/sum + exp2）到 ascend（A5）"
+}

@@ -1,0 +1,163 @@
+{
+  "benchmark_source": "examples/TileOPs/benchmarks/ops/bench_logsumexp_simd.py::test_logsumexp_simd_bench",
+  "benchmark_note": "pytest.mark.parametrize(workloads_to_params('LogSumExpFwdOpSimd', include_extra=True)) expands 6 cases; no smoke/skip marks in the benchmark or manifest, all classified tune. Workload->kernel mapping verified empirically (perf_opt/logs/phase0/probe_mapping.py + probe_mapping.json, 2026-10-17): wrapper default_config selects block_m/tile_n identical to the SIMT sibling (device_smem_budget() returns 216 KiB regardless of programming mode).",
+  "workloads": [
+    {
+      "benchmark_source": "examples/TileOPs/benchmarks/ops/bench_logsumexp_simd.py::test_logsumexp_simd_bench",
+      "kernel_id": "_logsumexp_kernel_single",
+      "workload_id": "attn-weights-4k-float16",
+      "label": "attn-weights-4k",
+      "marks": [],
+      "shape": [
+        32,
+        32,
+        4096
+      ],
+      "dtype": "float16",
+      "params": {
+        "dim": -1,
+        "M": 1024,
+        "N": 4096,
+        "block_m": 16,
+        "tile_n": 0
+      },
+      "impl_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/_logsumexp_kernel_single.py",
+      "kind": "tune",
+      "reason": "bench case (manifest attn-weights-4k float16); wrapper default_config block_m=16 tile_n=0 -> single variant (probe_mapping.json)",
+      "tuning_status": "winner_merged",
+      "final_impl": "perf_opt/LogSumExpFwdOpSimd.py",
+      "final_us": 10.217
+    },
+    {
+      "benchmark_source": "examples/TileOPs/benchmarks/ops/bench_logsumexp_simd.py::test_logsumexp_simd_bench",
+      "kernel_id": "_logsumexp_kernel_single",
+      "workload_id": "attn-weights-4k-bfloat16",
+      "label": "attn-weights-4k",
+      "marks": [],
+      "shape": [
+        32,
+        32,
+        4096
+      ],
+      "dtype": "bfloat16",
+      "params": {
+        "dim": -1,
+        "M": 1024,
+        "N": 4096,
+        "block_m": 16,
+        "tile_n": 0
+      },
+      "impl_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/_logsumexp_kernel_single.py",
+      "kind": "tune",
+      "reason": "bench case (manifest attn-weights-4k bfloat16); wrapper default_config block_m=16 tile_n=0 -> single variant (probe_mapping.json)",
+      "tuning_status": "winner_merged",
+      "final_impl": "perf_opt/LogSumExpFwdOpSimd.py",
+      "final_us": 10.119
+    },
+    {
+      "benchmark_source": "examples/TileOPs/benchmarks/ops/bench_logsumexp_simd.py::test_logsumexp_simd_bench",
+      "kernel_id": "_logsumexp_kernel_single",
+      "workload_id": "3d-multidim-reduce-float16",
+      "label": "3d-multidim-reduce",
+      "marks": [],
+      "shape": [
+        4,
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "params": {
+        "dim": [
+          0,
+          2
+        ],
+        "M": 128,
+        "N": 16384,
+        "block_m": 4,
+        "tile_n": 0
+      },
+      "impl_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/_logsumexp_kernel_single.py",
+      "kind": "tune",
+      "reason": "bench case (manifest 3d-multidim-reduce float16 dim=[0,2]); reduced to (128,16384) after op-layer permute+contiguous; wrapper default_config block_m=4 tile_n=0 -> single variant (probe_mapping.json)",
+      "tuning_status": "winner_merged",
+      "final_impl": "perf_opt/LogSumExpFwdOpSimd.py",
+      "final_us": 10.703
+    },
+    {
+      "benchmark_source": "examples/TileOPs/benchmarks/ops/bench_logsumexp_simd.py::test_logsumexp_simd_bench",
+      "kernel_id": "_logsumexp_kernel_tiled",
+      "workload_id": "attn-weights-32k-bfloat16",
+      "label": "attn-weights-32k",
+      "marks": [],
+      "shape": [
+        32,
+        32,
+        32768
+      ],
+      "dtype": "bfloat16",
+      "params": {
+        "dim": -1,
+        "M": 1024,
+        "N": 32768,
+        "block_m": 1,
+        "tile_n": 16384
+      },
+      "impl_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/_logsumexp_kernel_tiled.py",
+      "kind": "tune",
+      "reason": "bench case (manifest attn-weights-32k bfloat16); N_padded=32768 > 32512 -> tiled variant, wrapper default_config block_m=1 tile_n=16384 (2 full chunks) (probe_mapping.json)",
+      "tuning_status": "winner_merged",
+      "final_impl": "perf_opt/LogSumExpFwdOpSimd.py",
+      "final_us": 51.636
+    },
+    {
+      "benchmark_source": "examples/TileOPs/benchmarks/ops/bench_logsumexp_simd.py::test_logsumexp_simd_bench",
+      "kernel_id": "_logsumexp_kernel_tiled",
+      "workload_id": "lm-head-logits-float16",
+      "label": "lm-head-logits",
+      "marks": [],
+      "shape": [
+        4,
+        102400
+      ],
+      "dtype": "float16",
+      "params": {
+        "dim": -1,
+        "M": 4,
+        "N": 102400,
+        "block_m": 1,
+        "tile_n": 25600
+      },
+      "impl_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/_logsumexp_kernel_tiled.py",
+      "kind": "tune",
+      "reason": "bench case (manifest lm-head-logits float16); N_padded=102400 > 32512 -> tiled variant, wrapper default_config block_m=1 tile_n=25600 (4 full chunks, rem=0) (probe_mapping.json)",
+      "tuning_status": "winner_merged",
+      "final_impl": "perf_opt/LogSumExpFwdOpSimd.py",
+      "final_us": 5.632
+    },
+    {
+      "benchmark_source": "examples/TileOPs/benchmarks/ops/bench_logsumexp_simd.py::test_logsumexp_simd_bench",
+      "kernel_id": "_logsumexp_kernel_tiled",
+      "workload_id": "lm-head-logits-bfloat16",
+      "label": "lm-head-logits",
+      "marks": [],
+      "shape": [
+        4,
+        102400
+      ],
+      "dtype": "bfloat16",
+      "params": {
+        "dim": -1,
+        "M": 4,
+        "N": 102400,
+        "block_m": 1,
+        "tile_n": 25600
+      },
+      "impl_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/logsumexp_simd_kernel/_logsumexp_kernel_tiled.py",
+      "kind": "tune",
+      "reason": "bench case (manifest lm-head-logits bfloat16); tiled variant, wrapper default_config block_m=1 tile_n=25600 (probe_mapping.json)",
+      "tuning_status": "winner_merged",
+      "final_impl": "perf_opt/LogSumExpFwdOpSimd.py",
+      "final_us": 5.669
+    }
+  ]
+}

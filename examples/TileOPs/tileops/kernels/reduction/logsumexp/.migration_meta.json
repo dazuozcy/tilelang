@@ -1,0 +1,19 @@
+{
+  "op_name": "LogSumExpFwdOp",
+  "op_slug": "logsumexp",
+  "family": "reduction",
+  "gpu_repo_root": "/home/z00875089/TileOPs-fork",
+  "kernel_class_name": "LogSumExpKernel",
+  "op_class_name": "LogSumExpFwdOp",
+  "test_path": "tests/ops/test_softmax.py",
+  "test_slug": "softmax",
+  "bench_path": "benchmarks/ops/bench_softmax.py",
+  "bench_slug": "softmax",
+  "wrapper_path": "tileops/kernels/reduction/logsumexp/logsumexp.py",
+  "extracted_file": "tileops/kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py",
+  "extracted_functions": [
+    "_logsumexp_kernel_single",
+    "_logsumexp_kernel_tiled"
+  ],
+  "created_at": "2026-10-16T08:49:14Z"
+}

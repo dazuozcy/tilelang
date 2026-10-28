@@ -1,0 +1,991 @@
+{
+  "schema_version": 2,
+  "operator": "LogSumExpFwdOp",
+  "status": "passed",
+  "metadata": {
+    "run_id": "20261016_201213_480829_LogSumExpFwdOp",
+    "generated_at": "2026-10-16T20:13:39.497060+08:00",
+    "project_root": "/home/z00875089/tilelang-fork/examples/TileOPs",
+    "git_commit": "40c9d668776dbc9fd42bd7ed698a0c0091c81418",
+    "python": "3.11.16",
+    "platform": "Linux-5.4.0-216-generic-x86_64-with-glibc2.31",
+    "test_file": "tests/ops/test_softmax.py",
+    "benchmark_file": "benchmarks/ops/bench_softmax.py",
+    "prof_mode_requested": "msprof",
+    "commands": {
+      "correctness": [
+        "/home/l00970450/.conda/envs/tilelang/bin/python",
+        "-m",
+        "pytest",
+        "tests/ops/test_softmax.py",
+        "-sv",
+        "--junitxml=/home/z00875089/tilelang-fork/examples/TileOPs/reports/tileops/20261016_201213_480829_LogSumExpFwdOp/pytest/correctness.xml"
+      ],
+      "benchmark": [
+        "/home/l00970450/.conda/envs/tilelang/bin/python",
+        "-m",
+        "pytest",
+        "benchmarks/ops/bench_softmax.py",
+        "-sv",
+        "--junitxml=/home/z00875089/tilelang-fork/examples/TileOPs/reports/tileops/20261016_201213_480829_LogSumExpFwdOp/pytest/benchmark.xml",
+        "-m",
+        "not smoke"
+      ]
+    },
+    "exit_codes": {
+      "correctness": 0,
+      "benchmark": 0
+    }
+  },
+  "setup": {
+    "metadata": {
+      "framework": "TileOPs Reporting 0.1.0",
+      "date": "2026-10-16T20:13:39.497060+08:00",
+      "evaluation_scope": "LogSumExpFwdOp",
+      "benchmark": "TileOPs pytest operator suite",
+      "profiler": "msprof",
+      "run_id": "20261016_201213_480829_LogSumExpFwdOp",
+      "git_commit": "40c9d668776dbc9fd42bd7ed698a0c0091c81418",
+      "correctness_target": "tests/ops/test_softmax.py",
+      "benchmark_target": "benchmarks/ops/bench_softmax.py"
+    },
+    "environment": {
+      "npu": "Ascend950PR_9579 x 2",
+      "cpu": "x86_64",
+      "cann": "9.2.0",
+      "driver": "25.7.0",
+      "pytorch": "2.10.0+cpu",
+      "pytorch_npu": "2.10.0.post5.dev20260815",
+      "tilelang": null,
+      "python": "3.11.16",
+      "os": "Linux-5.4.0-216-generic-x86_64-with-glibc2.31",
+      "container": null
+    }
+  },
+  "summary": {
+    "correctness_passed": true,
+    "correctness_tests": 45,
+    "correctness_failed": 0,
+    "operator_count": 1,
+    "total_cases": 45,
+    "passed_cases": 45,
+    "failed_cases": 0,
+    "pass_rate": 1.0,
+    "benchmark_requested": true,
+    "benchmark_passed": true,
+    "benchmark_tests": 6,
+    "benchmark_failed": 0,
+    "case_count": 6,
+    "msprof_case_count": 6,
+    "profiler_fallback_count": 0
+  },
+  "correctness": {
+    "path": "/home/z00875089/tilelang-fork/examples/TileOPs/reports/tileops/20261016_201213_480829_LogSumExpFwdOp/pytest/correctness.xml",
+    "status": "passed",
+    "tests": 45,
+    "passed": 45,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "cases": [
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape0--1-dtype0]",
+        "name": "test_logsumexp_op[shape0--1-dtype0]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 21.905,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape1--1-dtype1]",
+        "name": "test_logsumexp_op[shape1--1-dtype1]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.185,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape2--1-dtype2]",
+        "name": "test_logsumexp_op[shape2--1-dtype2]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.087,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape3--1-dtype3]",
+        "name": "test_logsumexp_op[shape3--1-dtype3]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.096,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape4--1-dtype4]",
+        "name": "test_logsumexp_op[shape4--1-dtype4]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.153,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape5--1-dtype5]",
+        "name": "test_logsumexp_op[shape5--1-dtype5]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.37,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape6--1-dtype6]",
+        "name": "test_logsumexp_op[shape6--1-dtype6]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.264,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape7--1-dtype7]",
+        "name": "test_logsumexp_op[shape7--1-dtype7]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.127,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape8--1-dtype8]",
+        "name": "test_logsumexp_op[shape8--1-dtype8]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.159,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape9--1-dtype9]",
+        "name": "test_logsumexp_op[shape9--1-dtype9]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.002,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape10--1-dtype10]",
+        "name": "test_logsumexp_op[shape10--1-dtype10]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape11--1-dtype11]",
+        "name": "test_logsumexp_op[shape11--1-dtype11]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape12--1-dtype12]",
+        "name": "test_logsumexp_op[shape12--1-dtype12]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 3.093,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape13--1-dtype13]",
+        "name": "test_logsumexp_op[shape13--1-dtype13]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 2.866,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape14--1-dtype14]",
+        "name": "test_logsumexp_op[shape14--1-dtype14]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 2.874,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape15--1-dtype15]",
+        "name": "test_logsumexp_op[shape15--1-dtype15]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.139,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape16--1-dtype16]",
+        "name": "test_logsumexp_op[shape16--1-dtype16]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 3.045,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape17--1-dtype17]",
+        "name": "test_logsumexp_op[shape17--1-dtype17]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 3.293,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape18--1-dtype18]",
+        "name": "test_logsumexp_op[shape18--1-dtype18]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.183,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape19--1-dtype19]",
+        "name": "test_logsumexp_op[shape19--1-dtype19]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.105,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape20-0-dtype20]",
+        "name": "test_logsumexp_op[shape20-0-dtype20]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.01,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape21-0-dtype21]",
+        "name": "test_logsumexp_op[shape21-0-dtype21]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.003,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape22-0-dtype22]",
+        "name": "test_logsumexp_op[shape22-0-dtype22]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape23-1-dtype23]",
+        "name": "test_logsumexp_op[shape23-1-dtype23]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape24-1-dtype24]",
+        "name": "test_logsumexp_op[shape24-1-dtype24]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_op[shape25-1-dtype25]",
+        "name": "test_logsumexp_op[shape25-1-dtype25]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_keepdim[shape0--1-dtype0]",
+        "name": "test_logsumexp_keepdim[shape0--1-dtype0]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_keepdim[shape1--1-dtype1]",
+        "name": "test_logsumexp_keepdim[shape1--1-dtype1]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_keepdim[shape2--1-dtype2]",
+        "name": "test_logsumexp_keepdim[shape2--1-dtype2]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_keepdim[shape3-0-dtype3]",
+        "name": "test_logsumexp_keepdim[shape3-0-dtype3]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_keepdim[shape4-0-dtype4]",
+        "name": "test_logsumexp_keepdim[shape4-0-dtype4]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_keepdim[shape5-1-dtype5]",
+        "name": "test_logsumexp_keepdim[shape5-1-dtype5]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_non_contiguous[shape0-dtype0]",
+        "name": "test_logsumexp_non_contiguous[shape0-dtype0]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.004,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_non_contiguous[shape1-dtype1]",
+        "name": "test_logsumexp_non_contiguous[shape1-dtype1]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.002,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_non_contiguous[shape2-dtype2]",
+        "name": "test_logsumexp_non_contiguous[shape2-dtype2]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.002,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_non_contiguous[shape3-dtype3]",
+        "name": "test_logsumexp_non_contiguous[shape3-dtype3]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_non_contiguous[shape4-dtype4]",
+        "name": "test_logsumexp_non_contiguous[shape4-dtype4]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_non_contiguous[shape5-dtype5]",
+        "name": "test_logsumexp_non_contiguous[shape5-dtype5]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_1d[256-dtype0]",
+        "name": "test_logsumexp_1d[256-dtype0]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.178,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_1d[256-dtype1]",
+        "name": "test_logsumexp_1d[256-dtype1]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.114,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_1d[256-dtype2]",
+        "name": "test_logsumexp_1d[256-dtype2]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 3.051,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_1d[300-dtype3]",
+        "name": "test_logsumexp_1d[300-dtype3]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 3.03,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_1d[300-dtype4]",
+        "name": "test_logsumexp_1d[300-dtype4]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 0.134,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_1d[300-dtype5]",
+        "name": "test_logsumexp_1d[300-dtype5]",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 2.892,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_softmax::test_logsumexp_accepts_multidim",
+        "name": "test_logsumexp_accepts_multidim",
+        "classname": "tests.ops.test_softmax",
+        "time_s": 2.721,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      }
+    ]
+  },
+  "benchmark_tests": {
+    "path": "/home/z00875089/tilelang-fork/examples/TileOPs/reports/tileops/20261016_201213_480829_LogSumExpFwdOp/pytest/benchmark.xml",
+    "status": "passed",
+    "tests": 6,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "cases": [
+      {
+        "nodeid": "benchmarks.ops.bench_softmax::test_logsumexp_bench[attn-weights-4k-float16]",
+        "name": "test_logsumexp_bench[attn-weights-4k-float16]",
+        "classname": "benchmarks.ops.bench_softmax",
+        "time_s": 16.04,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "tileops_latency_us": "53.0042",
+          "tileops_tflops": "0.32",
+          "tileops_bandwidth_tbs": "0.16"
+        }
+      },
+      {
+        "nodeid": "benchmarks.ops.bench_softmax::test_logsumexp_bench[attn-weights-4k-bfloat16]",
+        "name": "test_logsumexp_bench[attn-weights-4k-bfloat16]",
+        "classname": "benchmarks.ops.bench_softmax",
+        "time_s": 1.612,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "tileops_latency_us": "52.9656",
+          "tileops_tflops": "0.32",
+          "tileops_bandwidth_tbs": "0.16"
+        }
+      },
+      {
+        "nodeid": "benchmarks.ops.bench_softmax::test_logsumexp_bench[attn-weights-32k-bfloat16]",
+        "name": "test_logsumexp_bench[attn-weights-32k-bfloat16]",
+        "classname": "benchmarks.ops.bench_softmax",
+        "time_s": 1.552,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "tileops_latency_us": "110.3945",
+          "tileops_tflops": "1.22",
+          "tileops_bandwidth_tbs": "0.61"
+        }
+      },
+      {
+        "nodeid": "benchmarks.ops.bench_softmax::test_logsumexp_bench[lm-head-logits-float16]",
+        "name": "test_logsumexp_bench[lm-head-logits-float16]",
+        "classname": "benchmarks.ops.bench_softmax",
+        "time_s": 1.526,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "tileops_latency_us": "20.3497",
+          "tileops_tflops": "0.08",
+          "tileops_bandwidth_tbs": "0.04"
+        }
+      },
+      {
+        "nodeid": "benchmarks.ops.bench_softmax::test_logsumexp_bench[lm-head-logits-bfloat16]",
+        "name": "test_logsumexp_bench[lm-head-logits-bfloat16]",
+        "classname": "benchmarks.ops.bench_softmax",
+        "time_s": 1.547,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "tileops_latency_us": "20.3773",
+          "tileops_tflops": "0.08",
+          "tileops_bandwidth_tbs": "0.04"
+        }
+      },
+      {
+        "nodeid": "benchmarks.ops.bench_softmax::test_logsumexp_bench[3d-multidim-reduce-float16]",
+        "name": "test_logsumexp_bench[3d-multidim-reduce-float16]",
+        "classname": "benchmarks.ops.bench_softmax",
+        "time_s": 1.653,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOp",
+          "op_module": "tileops.ops.reduction.logsumexp",
+          "tileops_latency_us": "24.8058",
+          "tileops_tflops": "0.34",
+          "tileops_bandwidth_tbs": "0.17"
+        }
+      }
+    ]
+  },
+  "performance": {
+    "source": "/home/z00875089/tilelang-fork/examples/TileOPs/reports/tileops/20261016_201213_480829_LogSumExpFwdOp/benchmark.json",
+    "requested_prof_mode": "msprof",
+    "cases": [
+      {
+        "operator": "LogSumExpFwdOp",
+        "case_id": "LogSumExpFwdOp-99d54b76f51a",
+        "label": "attn-weights-4k",
+        "params": {
+          "dtype": "float16",
+          "op_params": {
+            "dim": -1
+          },
+          "shape": [
+            32,
+            32,
+            4096
+          ]
+        },
+        "config": {
+          "block_m": 16,
+          "tile_n": 0
+        },
+        "tag": "tileops",
+        "latency_us": 53.00424128686327,
+        "prof_mode": "msprof",
+        "roofline_utilization_percent": null,
+        "bandwidth_tb_s": 0.15830159617961678,
+        "arithmetic_intensity_ops_per_byte": null,
+        "performance_tops": 0.31652591552438875,
+        "computility_tops": null,
+        "artifact_dir": null,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)"
+        }
+      },
+      {
+        "operator": "LogSumExpFwdOp",
+        "case_id": "LogSumExpFwdOp-e9076efbddf0",
+        "label": "attn-weights-4k",
+        "params": {
+          "dtype": "bfloat16",
+          "op_params": {
+            "dim": -1
+          },
+          "shape": [
+            32,
+            32,
+            4096
+          ]
+        },
+        "config": {
+          "block_m": 16,
+          "tile_n": 0
+        },
+        "tag": "tileops",
+        "latency_us": 52.96555280898876,
+        "prof_mode": "msprof",
+        "roofline_utilization_percent": null,
+        "bandwidth_tb_s": 0.15841722695238303,
+        "arithmetic_intensity_ops_per_byte": null,
+        "performance_tops": 0.3167571206233638,
+        "computility_tops": null,
+        "artifact_dir": null,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)"
+        }
+      },
+      {
+        "operator": "LogSumExpFwdOp",
+        "case_id": "LogSumExpFwdOp-be7664371b7d",
+        "label": "attn-weights-32k",
+        "params": {
+          "dtype": "bfloat16",
+          "op_params": {
+            "dim": -1
+          },
+          "shape": [
+            32,
+            32,
+            32768
+          ]
+        },
+        "config": {
+          "block_m": 1,
+          "tile_n": 16384
+        },
+        "tag": "tileops",
+        "latency_us": 110.3944738292011,
+        "prof_mode": "msprof",
+        "roofline_utilization_percent": null,
+        "bandwidth_tb_s": 0.6079191255880427,
+        "arithmetic_intensity_ops_per_byte": null,
+        "performance_tops": 1.2158011478695707,
+        "computility_tops": null,
+        "artifact_dir": null,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)"
+        }
+      },
+      {
+        "operator": "LogSumExpFwdOp",
+        "case_id": "LogSumExpFwdOp-d6942e0a39f6",
+        "label": "lm-head-logits",
+        "params": {
+          "dtype": "float16",
+          "op_params": {
+            "dim": -1
+          },
+          "shape": [
+            4,
+            102400
+          ]
+        },
+        "config": {
+          "block_m": 1,
+          "tile_n": 25600
+        },
+        "tag": "tileops",
+        "latency_us": 20.349691428571433,
+        "prof_mode": "msprof",
+        "roofline_utilization_percent": null,
+        "bandwidth_tb_s": 0.04025653179437469,
+        "arithmetic_intensity_ops_per_byte": null,
+        "performance_tops": 0.08051227733604104,
+        "computility_tops": null,
+        "artifact_dir": null,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)"
+        }
+      },
+      {
+        "operator": "LogSumExpFwdOp",
+        "case_id": "LogSumExpFwdOp-435bf24c91dd",
+        "label": "lm-head-logits",
+        "params": {
+          "dtype": "bfloat16",
+          "op_params": {
+            "dim": -1
+          },
+          "shape": [
+            4,
+            102400
+          ]
+        },
+        "config": {
+          "block_m": 1,
+          "tile_n": 25600
+        },
+        "tag": "tileops",
+        "latency_us": 20.37726391752577,
+        "prof_mode": "msprof",
+        "roofline_utilization_percent": null,
+        "bandwidth_tb_s": 0.040202060655229965,
+        "arithmetic_intensity_ops_per_byte": null,
+        "performance_tops": 0.08040333612163063,
+        "computility_tops": null,
+        "artifact_dir": null,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)"
+        }
+      },
+      {
+        "operator": "LogSumExpFwdOp",
+        "case_id": "LogSumExpFwdOp-6b30e6773334",
+        "label": "3d-multidim-reduce",
+        "params": {
+          "dtype": "float16",
+          "op_params": {
+            "dim": [
+              0,
+              2
+            ]
+          },
+          "shape": [
+            4,
+            128,
+            4096
+          ]
+        },
+        "config": {
+          "block_m": 4,
+          "tile_n": 0
+        },
+        "tag": "tileops",
+        "latency_us": 24.805848425196853,
+        "prof_mode": "msprof",
+        "roofline_utilization_percent": null,
+        "bandwidth_tb_s": 0.1690956071367155,
+        "arithmetic_intensity_ops_per_byte": null,
+        "performance_tops": 0.33817057397960903,
+        "computility_tops": null,
+        "artifact_dir": null,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)"
+        }
+      }
+    ]
+  },
+  "operators": [
+    {
+      "operator": "LogSumExpFwdOp",
+      "family": "reduction",
+      "cases": 45,
+      "passed": 45,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "avg_max_abs_err": 1.4676923076923074e-07,
+      "max_abs_err": 4.77e-07,
+      "performance_cases": 6,
+      "ratio_range": null
+    }
+  ],
+  "warnings": [],
+  "session_timing": {
+    "enabled": true,
+    "operators": {
+      "LogSumExpFwdOp": {
+        "operator": "LogSumExpFwdOp",
+        "source": "/home/z00875089/tilelang-fork/examples/logsumexp/SESSION_TIMING_ANALYSIS.md",
+        "status": "available",
+        "total_duration_s": 13261.0,
+        "breakdown": [
+          {
+            "name": "Stage 0 脚手架（scaffolder）",
+            "duration_s": 945.0,
+            "ratio_percent": 7.1,
+            "detail": "08:34:28–08:50:13Z；Phase 0 通读 GPU 仓 + S1-S7 七文件 + 抽取脚本 + Tier 1 全过"
+          },
+          {
+            "name": "函数1 S1 设计（含 1 次门禁窄修复）",
+            "duration_s": 1542.0,
+            "ratio_percent": 11.6,
+            "detail": "08:50:59–09:17:28Z；first_design 1298s + S1-PLACEHOLDER/CORES-LOGICAL/REF-PATHS 三项机械门禁误报窄修复 244s"
+          },
+          {
+            "name": "函数1 S2 设计检视",
+            "duration_s": 2882.0,
+            "ratio_percent": 21.7,
+            "detail": "09:17:48–10:05:50Z；9 维度迁移检视 + 维度 8 独立推演 + 机械复核伪影消解（亲读解析器源码）"
+          },
+          {
+            "name": "函数1 S3 实现",
+            "duration_s": 1141.0,
+            "ratio_percent": 8.6,
+            "detail": "10:06:17–10:25:18Z；首过 PRECISION_PASS，L0/L1/L2/Boundary 86 用例，fp16/bf16 位级一致"
+          },
+          {
+            "name": "函数2 S1 设计（1 次异常中断 + 重试首过）",
+            "duration_s": 2258.0,
+            "ratio_percent": 17.0,
+            "detail": "10:25:54–11:03:59Z；att1 subagent 异常终止 603s（无工件产出，非门禁失败）+ att2 完整设计 1655s（gate 1 零失败零警告——前序教训规避误报生效）"
+          },
+          {
+            "name": "函数2 S2 设计检视",
+            "duration_s": 2994.0,
+            "ratio_percent": 22.6,
+            "detail": "11:04:16–11:54:10Z；9 维度检视 + 真机探针闭合尾 chunk reduce 先例空隙（review_probe_tail_reduce.py PROBE_PASS）"
+          },
+          {
+            "name": "函数2 S3 实现",
+            "duration_s": 997.0,
+            "ratio_percent": 7.5,
+            "detail": "11:54:28–12:11:05Z；首过 PRECISION_PASS，61 用例，fp16/bf16 位级一致"
+          },
+          {
+            "name": "Stage 5 集成验证（integrator）",
+            "duration_s": 235.0,
+            "ratio_percent": 1.8,
+            "detail": "12:11:19–12:15:14Z；一次通过（无调试闭环）：45/45 正确性 + 6/6 benchmark（do_bench(msprof)）+ report passed"
+          },
+          {
+            "name": "conductor 编排开销",
+            "duration_s": 267.0,
+            "ratio_percent": 2.0,
+            "detail": "状态机迁移（migration init/func/phase/integrate）、机械门禁执行、dispatch 间隔；9 次 dispatch 合计 12994s，总区间 13261s 之差"
+          }
+        ],
+        "reason": null
+      }
+    }
+  }
+}

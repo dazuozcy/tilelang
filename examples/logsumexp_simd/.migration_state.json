@@ -1,0 +1,22 @@
+{
+  "family": "reduction",
+  "functions": {
+    "_logsumexp_kernel_single": {
+      "stage_state": null,
+      "status": "done"
+    },
+    "_logsumexp_kernel_tiled": {
+      "stage_state": null,
+      "status": "done"
+    }
+  },
+  "integration": {
+    "attempts": 0,
+    "status": "pass"
+  },
+  "last_updated": "2026-10-17T11:21:03Z",
+  "meta_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp_simd/.migration_meta.json",
+  "op_name": "logsumexp_simd",
+  "op_slug": "logsumexp_simd",
+  "phase": "DONE"
+}

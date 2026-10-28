@@ -1,0 +1,74 @@
+TileLang Ascend review checklist (tilelang-fork, A5/950, dav-3510)
+
+Priorities: behavior regressions > precision/dtype risks > synchronization
+hazards > missing tests > style. Check the correctness classes before style.
+
+1) Programming mode & API style (SimtVF/SimdVF)
+- Use `import tilelang.ascend.language as T` (the dialect shadows the common surface).
+- Default to SimtVF: `T.SimtVF(threads=N)` + `T.Parallel` loops; the compiler
+  vectorizes and auto-schedules (tilelang-ascend skill §2).
+- Downgrade to `T.SimdVF()` + explicit `T.simd.*` (2048-bit intrinsics) only for
+  proven hot spots, with a comment stating the reason.
+- In SimdVF code check mask usage (`T.simd.pset/pld/pst`, mask propagation into
+  every masked op) and `latency=` annotations (preserve the measured source;
+  correctness still needs sound dependencies — skill §8).
+- GEMM-dominant operators use mixed kernels: `T.MixedKernel(sids=1|2)` with
+  explicit sid guard partitioning and dual_copy ownership.
+
+2) Cube path conventions (NT GEMM)
+- L1-input `T.gemm` requires NT: `trans_A=False, trans_B=True`; weights are
+  stored [N, K] in GM (skill §5; CONST-gemm-dim-constraints).
+- Accumulator in `T.alloc_l0c`; `clear_accum=(kt == 0)` on the first k-step,
+  `clear_accum=False` afterwards.
+- GM<->L1 staging via `T.copy` — ND2NZ fractal conversion is inserted
+  automatically by the InsertNd2Nz pass; never hand-write NZ staging.
+- L0C->UB via `T.dual_copy` (or `T.copy` L0C->GM); check M-split/N-split shape
+  relationships of the actual path (skill §6.2).
+
+3) Kernel launch & memory hierarchy
+- 1-D grid only: `T.Kernel(N)` with no `threads=` argument (TypeError otherwise);
+  multi-dim decomposition computed manually (`row = idx // N_TILES`).
+- alloc API correctness: `T.alloc_shared` = UB, `T.alloc_l1` = CBuf,
+  `T.alloc_l0a/l0b/l0c` = Cube buffers (skill §4).
+- Capacity budget must count buffer versions (AutoSchedule multibuffering) and
+  layout padding, not just logical shapes (skill §4.3); cross-check
+  pattern-library constants.md CONST-capacity-a5 (UB 248KB, 216KB under SimtVF;
+  L1 512KB; L0C 256KB; L0A/L0B 64KB — assumption entries budgeted at 90%).
+
+4) Synchronization
+- Default: rely on AutoSchedule; SimtVF cross-thread hazards get auto-inserted
+  `asc_syncthreads()`.
+- Manual `T.ascend_set_flag`/`T.ascend_wait_flag` only with matched pairs and
+  comments; fully-manual kernels need
+  `PassConfigKey.TL_ENABLE_AUTO_SCHEDULE: False`.
+- In manual sync schemes check the flag id budget: 8 intra-core / 16 cross-core
+  (CONST-arch-a5); mismatched pairing is a correctness blocker.
+
+5) Correctness
+- Check boundary/tail logic for tiled loops; for GEMM check M/N multiples of
+  16, K % TILE_K_SUB == 0, TILE_K_SUB % C0 == 0.
+- Check dtype and cast paths for numerical stability; fp16/bf16 GEMM
+  accumulates into float32.
+- Golden reference computed with torch on NPU (`device="npu"`); validate with
+  `torch.testing.assert_close` at dtype-tiered tolerance: fp8 1e-1,
+  bf16/fp16 1e-2, fp32 1e-3 (5e-3 for accumulation-heavy).
+
+6) Performance
+- Check redundant copies and excessive casts; count ND2NZ/fractal conversion
+  cost in layout choices (CONST-mte-bandwidth-model).
+- Check tile size, grid/block count vs physical cores, and loop ordering
+  reasonableness; persistent traversal and `T.Stage`/`T.Task(latency=, ii=)`
+  hints need A/B evidence against the AutoSchedule baseline.
+
+7) Tests
+- Verify at least one focused repro or unit test exists.
+- Prefer covering both normal and boundary tile shapes.
+- Check whether implementation is based on existing patterns in examples/ascend/
+  and testing/ascend/; flag scratch-built operator code when a close existing
+  template is available.
+- Do not import application kernels into testing/ascend/ regression suites.
+
+8) Formatting
+- Keep CI style requirements satisfied.
+- Before PR, run from repository root:
+	bash format.sh --files changed_files
