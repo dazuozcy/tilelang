@@ -5,6 +5,8 @@ description: "TileLang-Op-Conductor 自进化机制执行 skill，由 tilelang-s
 
 # TileLang-Op-Conductor 自进化（价值点蒸馏与合入）
 
+迁移来源与阶段衔接遵循 [migration-source.md](../_shared/standards/migration-source.md)。harness 蒸馏附只读 meta/转换记录/来源版本，静态结果不能作为设备实证。
+
 ## 1. 目标
 
 把算子生成 / 优化任务中暴露的价值点沉淀进 Agent 机制与 skills，形成「执行 → 复盘 → 蒸馏 → 分级合入 → 检索」闭环，使下一次任务在正确的位置读到正确的经验。

@@ -6,6 +6,8 @@ disable: true
 
 > **适用范围**：`scenario=migration`。本文件含两个子模式**共享**的迁移规则（§1–§5）与 **plain 子模式专属规则**（§6，普通 GPU 仓）；harness 子模式专属规则另见 `conductor-scenarios/harness.md`（TileOPs 同构仓，Stage 0/5 激活）。**载入顺序**：plain 子模式只读本文件；harness 子模式先读本文件、再读 harness.md（路由探测出 `migration_mode` 后由主文件 `.opencode/agents/tilelang-op-conductor.md`「场景文件加载」指引按序 Read 载入）。
 
+迁移来源、逐函数 dispatch 与无设备约束以 `.agents/skills/_shared/standards/migration-source.md` 为准。
+
 ## 1. 迁移执行规则（公共项）
 
 1. **严格**使用 `@tilelang.jit()` 所装饰的函数名作为算子名，不擅自裁剪变换。
@@ -13,7 +15,7 @@ disable: true
 3. `@T.prim_func()` 装饰的函数（TIR 原语函数）参数名称及顺序在迁移前后保持不变。
 4. 从用户提供的算子代码工程里推断输入张量规格，不用询问用户。
 5. **编程模式默认 `simt`**（迁移类不问用户编程模式；GEMM 主导算子可由 designer 在 DESIGN.md 中给出 `mixed` 重设计依据；用户显式指定 `simt` / `simd` / `mixed` 时以用户为准，`auto_schedule` 默认 `yes`）。
-6. **源算子路径必须透传 Stage 1/2**：调度 designer 与 reviewer 时必须在 prompt 中传入 `source_op_path`（plain=用户给出的源文件路径；harness=`.migration_meta.json` 中该函数的 GPU 源码路径，缺失时从 `gpu_repo_root` 定位）。Stage 1 据此执行「源算子三问解读 → 算法调研（Phase R，源算法只是候选之一）→ 硬件耦合性判定 → NPU 算法重设计」（DESIGN.md §0 + §1.6.0），Stage 2 据此核对 §0 解读与源码一致性；两者均不得在未读源码时臆测语义。
+6. **源算子路径必须透传 Stage 1/2**：调度 designer 与 reviewer 时必须在 prompt 中传入 `source_op_path`（plain=用户给出的源文件路径；harness=按 `migration-source.md` 的 `gpu_source.function_sources` 解析，并一起传 `source_context`）。Stage 1 据此执行「源算子三问解读 → 算法调研（Phase R，源算法只是候选之一）→ 硬件耦合性判定 → NPU 算法重设计」（DESIGN.md §0 + §1.6.0），Stage 2 据此核对 §0 解读与源码一致性；两者均不得在未读源码时臆测语义。
 
 > 子模式差异：harness 的多函数命名约定与 meta 读取见 harness.md §2；plain 的规格推断与精度门禁见本文件 §6。
 
@@ -60,7 +62,7 @@ INIT --> DESIGN --> REVIEW --> DEVELOP --> TUNING(可选) --> DONE
   1. **内存层级**：GPU `T.alloc_shared` / `T.alloc_fragment` 语义 → Ascend `T.alloc_shared`(UB) / `T.alloc_l1`(CBuf) / `T.alloc_l0a/l0b/l0c`，容量预算按 A5 标定值（`pattern-library/constants.md` CONST-capacity-a5，assumption 条目按 90% 折扣）；
   2. **调度**：GPU 多维 grid / `threads=` → Ascend 一维 `T.Kernel(N)`（`T.Kernel` 不接受 `threads=` 参数，会 TypeError）；`Persistent` / `Stage` / `Task` 调度提示按 `tilelang-ascend` skill §7 对照改写；同步默认依赖 AutoSchedule，手动 `T.ascend_set_flag`/`T.ascend_wait_flag` 须配对并注释；
   3. **布局**：fractal/NZ 由 `AscendLayoutInference` + `InsertNd2Nz` pass 自动推理（不手写 NZ 分形搬运）；GEMM 走 NT 约定（`T.gemm(A_l1, B_l1, C_l0c, transpose_B=True)`，GM 权重 `[N, K]`）。
-- GPU 仓若为 TileOPs 同构工程（`tileops/manifest` + `tests/ops` + `benchmarks/ops`）且本仓 `examples/TileOPs/` 框架在位（`tileops` 包 + `add-ascend-op` skill），即走 harness 子模式（Stage 0/5 激活）；任一不满足则回落 plain（探测规则见主文件「migration 子模式探测」）。
+- GPU 仓若为 TileOPs 同构工程（`src/tileops/manifest/spec` + `_ops` / `_kernels`；含 `tests/ops` + `benchmarks/ops`）且本仓 `examples/TileOPs/` 框架在位（`tileops` 包 + `add-ascend-op` skill），即走 harness 子模式（Stage 0/5 激活）；仅普通非 TileOPs 源仓回落 plain；已识别 TileOPs 的发现失败须明确报告（探测规则见主文件「migration 子模式探测」）。
 
 ### 6.3 阶段差异
 

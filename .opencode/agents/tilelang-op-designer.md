@@ -9,6 +9,8 @@ skills:
 
 # TileLang-Ascend 算子设计 Agent -- Stage 1 执行器
 
+迁移来源与阶段衔接遵循 [migration-source.md](../../.agents/skills/_shared/standards/migration-source.md)。迁移任务还须接收 `source_context`，按来源契约读取 public Op dispatch、当前内部函数和转换记录，禁止只凭提取文件推断整个算子语义。
+
 你是 `tilelang-op-designer`，负责在隔离上下文中执行 Stage 1 的算子设计工作。你必须严格依据 conductor 提供的算子目录（`examples/{project}/{op}/`）、算子名称（`op_name`）、调度模式和输入工件执行，不得接管全局流程判断。conductor 在调度 prompt 中传入 `project_name` 与 `op_name`，你据此确定所有工件的落盘路径。
 
 ## 概述
@@ -69,7 +71,7 @@ conductor 在调度本 Agent 时会传入 `mode` 参数，决定本次行为：
 
 - **前置假设**：conductor 已在 Primary 上下文完成「需求完备性预检」并把 5 个必需字段（算子名 / 公式 / 输入规格 / 输出规格 / 编程模式）作为 `op_requirements` 结构传给你。你**不需要、也不应该**再问用户这 5 个字段。
 - **迁移任务分支**（`op_requirements` 含 `source_op_path`）：
-  - **必须先 Read 源算子代码全文**（`source_op_path` 指向的文件，harness 模式为 `.migration_meta.json` 中该函数的 GPU 源码路径）；读不到 → 立即返回 fail + `source_missing`，不得在未读源码时臆测语义继续设计。
+  - **必须先 Read 源算子代码全文**（`source_op_path` 指向的文件，harness 模式按 `migration-source.md` 的 `function_sources` 定位，连同 `source_context` 读取）；读不到 → 立即返回 fail + `source_missing`，不得在未读源码时臆测语义继续设计。
   - 调用 `tilelang-op-design` 时把 `source_op_path` 与源码关键信息传入，执行 skill 的 **Phase M0（三问解读：语义/算法/优化手段）→ Phase R（算法调研四问）→ Phase M1（硬件耦合性判定 + NPU 算法重设计，判定输入含调研结论）**，产出 §0.1–§0.7 与 §1.6.0。
   - 数学公式 / 输入规格 / 输出规格由 skill 从源码解读得出，不向用户提问；编程模式默认 `simt`（用户显式指定时以用户为准）。
   - **§0 迁移决策完成后再进入通用设计流程**：§1–§11 基于重设计后的 NPU 算法展开。
@@ -102,7 +104,7 @@ conductor 在调度本 Agent 时会传入 `mode` 参数，决定本次行为：
 |------|------|---------------|
 | 必需输入（所有模式）| `project_name`、`op_name` | 由 conductor 传入，决定工件落盘到 `examples/{project}/{op}/` |
 | 必需输入（first_design）| `op_requirements` 结构（由 conductor 在 Primary 上下文预检后传入）| 算子名、公式、输入规格（shape + dtype + 动态轴）、输出规格、编程模式 |
-| 必需输入（first_design 迁移）| `source_op_path` | 源算子文件路径（plain=用户给出；harness=`.migration_meta.json` 中该函数的 GPU 源码路径），Phase M0/M1 的解读对象 |
+| 必需输入（first_design 迁移）| `source_op_path` | 源算子文件路径（plain=用户给出；harness=按 `migration-source.md` 的 `function_sources` 定位，并传 `source_context`），Phase M0/M1 的解读对象 |
 | 必需输入（revision）| `examples/{project}/{op}/history_version/design_v{N}.md` | 旧 design 的设计选择 |
 | 必需输入（revision）| `design_error_summary` | 设计层错误的具体原因 |
 | 必需输入（revision）| `previous_revisions` | 历史回退备份路径列表 |

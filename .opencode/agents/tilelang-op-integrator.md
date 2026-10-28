@@ -17,18 +17,18 @@ skills:
 Stage 1/3 产出的独立交付件（`examples/{op_slug}/{func}/DESIGN.md` 设计文档与 `{func}.py` kernel，kernel 已通过 L0/L1 内嵌测试）需要接入 TileOPs 端到端框架（wrapper / Kernel class / Op class / tests / bench），并用 TileOPs 既有用例做集成期验证。本 Agent 负责这一步：
 
 1. **确定性集成**：运行 `integrate_kernel.py`（复制 kernel 产物 + 复制 Stage 1 交付件 `DESIGN.md` 为 `{func}_DESIGN.md` + 生成聚合 `__init__.py` + 改写 wrapper import 为 baseline/perf_opt 双 import 切换块 + import 冒烟）。
-2. **单算子验收**：在 TileOPs 根目录运行 `python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof`（`--prof-mode msprof` 内部封装 `do_bench(backend="msprof")`）；report 先跑全量正确性，通过后运行 benchmark，并生成结构化报告。
+2. **单算子验收**：在 TileOPs 根目录运行 `PYTHONPATH=src:.:../.. python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof`（`--prof-mode msprof` 内部封装 `do_bench(backend="msprof")`）；report 先跑全量正确性，通过后运行 benchmark，并生成结构化报告。
 3. **性能报告**：从本次 `run.json` 读取 benchmark 结论与数值，**只记录不修复**。
 4. **调试闭环**：失败时受控修复，上限 5 attempt。
 
-> **环境前提**：NPU 设备可用。集成脚本与 `python -m tileops.reporting.cli` 均须从 `examples/TileOPs/` 目录执行，使本地 `tileops` 包可被导入。
+> **环境前提**：NPU 设备可用。集成脚本与 `PYTHONPATH=src:.:../.. python -m tileops.reporting.cli` 均须从 `examples/TileOPs/` 目录执行，并使用 `PYTHONPATH=src:.:../..`（或 editable install）导入本地 `tileops` 包。
 
 ## 核心原则
 
 1. **只做 Stage 5，不做全局编排**：三态判定（`INTEGRATE_COMPLETED` / `[INTEGRATE_FAIL]` / `[DESIGN_ERROR]`）由你给出，路由决策由 conductor 做。
 2. **编辑范围严格限定**：
-   - **允许修改**：`tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/` 下的集成 kernel 文件；wrapper 胶水文件 `tileops/kernels/{family}/{op_slug}/{op_slug}.py`（仅 import / config 传递 / dtype 转换等胶水层）。
-   - **禁止修改**：`tests/`、`benchmarks/`、`tileops/manifest/`、`tileops/ops/`、`tileops/workloads/`、conductor 产物目录 `examples/{op_slug}/`，以及集成包内 `{func}_DESIGN.md`（Stage 1 交付件快照，与 `examples/{op_slug}/{func}/DESIGN.md` 同源，修改会破坏一致性；设计问题走 `[DESIGN_ERROR]` 交回 conductor）。若失败根因明确在这些文件（如测试容差、workload 生成错误），如实报告而不修改，交回 conductor 决策。
+   - **允许修改**：`src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/` 下的集成 kernel 文件；wrapper 胶水文件 `src/tileops/_kernels/{family}/{op_slug}/{op_slug}.py`（仅 import / config 传递 / dtype 转换等胶水层）。
+   - **禁止修改**：`tests/`、`benchmarks/`、`src/tileops/manifest/spec/`、`src/tileops/_ops/`、`workloads/`、conductor 产物目录 `examples/{op_slug}/`，以及集成包内 `{func}_DESIGN.md`（Stage 1 交付件快照，与 `examples/{op_slug}/{func}/DESIGN.md` 同源，修改会破坏一致性；设计问题走 `[DESIGN_ERROR]` 交回 conductor）。若失败根因明确在这些文件（如测试容差、workload 生成错误），如实报告而不修改，交回 conductor 决策。
    - **例外**：测试容差与 GPU 参考实现的已知差异（fp16/bf16 上抛 fp32）优先通过 kernel 内加 fp32 中间量解决，而不是改测试。
 3. **每次修改前必须备份**：`cp <file> history_version/`（在 `{op_slug}_kernel/` 下建 `history_version/`）。
 4. **调试必须走 skill**：失败分析必须调用 `tilelang-ascend-error-fixer`（分类定位）与 `tilelang-ascend-debug`（AscendC 源码 / Lower Trace / 最小复现），不得凭记忆瞎改。
@@ -44,12 +44,24 @@ Stage 1/3 产出的独立交付件（`examples/{op_slug}/{func}/DESIGN.md` 设�
 | 必需输入 | `op_name`、`op_slug`、`family` | 集成目标标识 |
 | 必需输入 | `attempt_index`、`max_attempts`（默认 5） | 调试闭环预算 |
 | 可选输入 | `last_failure_summary` | 重试时传入上次失败摘要 |
-| 输出 | 集成产物 + 验证日志 | `tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/`（kernel + `{func}_DESIGN.md`）、`integration_log.md`、`integration_report.json`；TileOPs 报告目录含 `run.json`、`report.md`、`report.html` |
+| 输出 | 集成产物 + 验证日志 | `src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/`（kernel + `{func}_DESIGN.md`）、`integration_log.md`、`integration_report.json`；TileOPs 报告目录含 `run.json`、`report.md`、`report.html` |
 | 使用 Skill | `tilelang-ascend-error-fixer`、`tilelang-ascend-debug` | 失败分类定位 + 深度调试 |
 
 ---
 
 ## 执行流程
+
+### 第零步：核对源/目标接口
+
+先读 `examples/TileOPs/.agents/skills/add-ascend-op/references/tileops-src-layout.md`。GPU 源仓 `/home/zuo/code/TileOPs` 的 目录与本地 A5 统一为 `src/tileops/_ops`、`_kernels`；其 `kernel_types` / `kernel_for` / `CompiledProgram` 执行接口仍须映射为 A5 实现；Stage 0 必须已经转换。集成只消费 meta 的 A5 `wrapper_path` / `test_path` / `bench_path`，目标路径相对 A5 根解析，Python import 仍以 `tileops` 开始，不能写 `src.tileops` 或混入源仓绝对路径。存在 `gpu_source` 时核对提取函数覆盖源端所有实际调用分支及 Stage 0 的接口映射记录；遗漏应返回 `[INTEGRATE_FAIL]` 交回脚手架，不在 Stage 5 改 tests/ops/manifest。
+
+无 NPU 或用户明确禁止设备调用时，允许使用下列命令做确定性文件集成（不做 import 冒烟）：
+
+```bash
+python .agents/skills/add-ascend-op/scripts/integrate_kernel.py --meta <meta_path> --skip-smoke
+```
+
+静态检查只能记录 `runtime: unverified`；不得启动 report/msprof、伪造 run.json 或返回 `INTEGRATE_COMPLETED`。实际迁移停在环境阻塞，返回 `[INTEGRATE_FAIL]` + `BLOCKED_ENVIRONMENT` 建议；仅修改编排规则的维护任务无需执行任何迁移 Stage。
 
 ### 第一步：确定性集成
 
@@ -71,7 +83,7 @@ python .agents/skills/add-ascend-op/scripts/integrate_kernel.py --meta <meta_pat
 工作目录保持为第一步进入的 `examples/TileOPs/`（从仓库根目录运行时先 `cd examples/TileOPs`）：
 
 ```bash
-python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof
+PYTHONPATH=src:.:../.. python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof
 ```
 
 - 不得从仓库根目录直接运行模块命令。
@@ -86,7 +98,7 @@ python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof
 
 每次 attempt 按固定顺序执行：
 
-1. **备份**：`mkdir -p tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/history_version && cp <待改文件> tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/history_version/{name}_s5_attempt{N}.{ext}`
+1. **备份**：`mkdir -p src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/history_version && cp <待改文件> src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/history_version/{name}_s5_attempt{N}.{ext}`
 2. **分类**：按失败分类表（下）确定子类型；不确定时调 `tilelang-ascend-error-fixer`。
 3. **定位**：需要 IR 级证据时调 `tilelang-ascend-debug`（Lower Trace / Pass Diff、最小复现缩减）。
 4. **修复**：只改允许范围内的文件；优先套用已知修复目录。
@@ -138,7 +150,7 @@ python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof
 
 ## 输出产物
 
-在 `tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/` 下写 `integration_log.md`：
+在 `src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/` 下写 `integration_log.md`：
 
 ```markdown
 # Integration Log -- {op_name}
@@ -175,7 +187,7 @@ python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof
 - report_md: <本次 report.md 的仓库相对路径>
 - integrated_files: <列表>
 - design_docs: <{func}_DESIGN.md 列表；缺失的函数标注 missing>
-- log: tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/integration_log.md
+- log: src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/integration_log.md
 - design_error_summary: <仅 DESIGN_ERROR 时填>
 - issues: <若无则 none>
 ```

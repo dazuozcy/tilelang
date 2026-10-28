@@ -9,7 +9,7 @@ in the manifest ``source.bench``.
 Measures latency, TFLOPS, and DRAM bandwidth against the PyTorch baseline
 (``torch.logsumexp`` — a native operator, kept as the performance
 baseline). Workload shapes and roofline formulas are loaded from the ops
-manifest (tileops/manifest/).
+manifest (src/tileops/manifest/spec/).
 
 Measurement authority: end-to-end latency is measured solely by
 ``tilelang.profiler.do_bench(fn, backend="msprof")`` (milliseconds),
@@ -20,13 +20,13 @@ in npusim.
 import pytest
 import torch
 
-from tileops.benchmark.benchmark_base import (
+from tileops._ops.reduction.logsumexp import LogSumExpFwdOp
+from tileops._perf.benchmark_base import (
     BenchmarkReport,
     ManifestBenchmark,
     workloads_to_params,
 )
-from tileops.ops.reduction.logsumexp import LogSumExpFwdOp
-from tileops.workloads.reduction import LogSumExpWorkload
+from workloads.reduction import LogSumExpWorkload
 
 # Op name constant
 
@@ -40,9 +40,7 @@ _LOGSUMEXP_OP = "LogSumExpFwdOp"
     "shape, dtype, op_params",
     workloads_to_params(_LOGSUMEXP_OP, include_extra=True),
 )
-def test_logsumexp_bench(
-    shape: tuple, dtype: torch.dtype, op_params: dict
-) -> None:
+def test_logsumexp_bench(shape: tuple, dtype: torch.dtype, op_params: dict) -> None:
     test = LogSumExpWorkload(shape, dtype)
     inputs = test.gen_inputs()
 

@@ -103,7 +103,7 @@ conductor 在场景路由（含 migration 子模式探测）完成后、预检�
 请帮我开发一个 softmax 算子，target=ascend。数学公式：softmax(x_i)=exp(x_i-max)/sum(exp(x_j-max))
 输入：[B, N] float16，B 动态；输出：同输入；编程模式：simt
 
-# 迁移（plain：给出 GPU 源文件；harness：给出 TileOPs 同构仓路径）
+# 迁移（plain：给出 GPU 源文件；harness：给出 TileOPs 源仓路径（支持 src 布局））
 请把这个 TileLang GPU 算子迁移到 ascend：文件 examples/gemm/matmul.py，输出 shape (M, N)
 
 # 优化（指向已存在算子产物）
@@ -127,3 +127,5 @@ conductor 在场景路由（含 migration 子模式探测）完成后、预检�
 | 贡献指南 / 开发者文档 | `docs/developer_guide/` + `CONTRIBUTING.md` |
 
 > Docs 自动路由规则（关键词映射、优先级与负向断言举证）见 `AGENTS.md`；后端词汇映射与禁用词清单见 `.agents/skills/_shared/standards/backend-glossary.md`。
+
+迁移来源与各阶段衔接参见 `.agents/skills/_shared/standards/migration-source.md`；当前源仓 `/home/zuo/code/TileOPs` 与本地 A5 harness 使用不同目录/API，Stage 0 负责转换。

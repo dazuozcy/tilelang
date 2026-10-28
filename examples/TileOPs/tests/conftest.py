@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from tileops.device import get_device_backend
-from tileops.testing.test_base import get_check_result
+from tests.workload_test_base import get_check_result
+from tileops.backend.device import get_device_backend
 
 
 @pytest.fixture(autouse=True)

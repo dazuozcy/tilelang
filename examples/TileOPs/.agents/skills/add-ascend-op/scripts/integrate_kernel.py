@@ -2,7 +2,7 @@
 
 Copies the per-function kernel files produced by the tilelang-op-conductor
 pipeline (``examples/{project}/{func}/{func}.py``) into the TileOPs kernel
-package (``tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/``), copies
+package (``src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/``), copies
 each function's Stage 1 design doc (``DESIGN.md`` co-located with the kernel
 product) into the same package as ``{func}_DESIGN.md``, generates
 the aggregation ``__init__.py``, rewrites the wrapper import into a
@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -45,6 +46,10 @@ def find_tileops_root() -> Path:
 
 def load_meta(path: Path) -> dict:
     meta = json.loads(path.read_text(encoding="utf-8"))
+    if meta.get("source_layout") != "src":
+        raise SystemExit("[error] only source_layout=src metadata is supported; regenerate Stage 0")
+    if meta.get("refresh_status") == "requires_rescaffold":
+        raise SystemExit("[error] refreshed artifacts require Stage 0 regeneration and validation")
     for key in ("op_slug", "family", "wrapper_path"):
         if key not in meta:
             raise SystemExit(f"[error] meta file {path} missing required key '{key}'")
@@ -268,16 +273,22 @@ def rewrite_wrapper_import(
 
 
 def smoke_test(
-    tileops_root: Path, family: str, op_slug: str, names: list[str], kernel_class: str | None
+    tileops_root: Path,
+    family: str,
+    op_slug: str,
+    names: list[str],
+    kernel_class: str | list[str] | None,
 ) -> tuple[bool, str]:
-    pkg = f"tileops.kernels.{family}.{op_slug}.{op_slug}_kernel"
-    wrapper_mod = f"tileops.kernels.{family}.{op_slug}.{op_slug}"
+    pkg = f"tileops._kernels.{family}.{op_slug}.{op_slug}_kernel"
+    wrapper_mod = f"tileops._kernels.{family}.{op_slug}.{op_slug}"
+    classes = [kernel_class] if isinstance(kernel_class, str) else kernel_class or []
     cls_check = (
         (
             f"import {wrapper_mod} as w\n"
-            f"assert hasattr(w, {kernel_class!r}), 'missing {kernel_class}'\n"
+            f"missing_classes = [n for n in {classes!r} if not hasattr(w, n)]\n"
+            "assert not missing_classes, f'missing classes: {missing_classes}'\n"
         )
-        if kernel_class
+        if classes
         else ""
     )
     code = (
@@ -288,7 +299,22 @@ def smoke_test(
         "print('smoke-ok', m.__all__)\n"
     )
     proc = subprocess.run(
-        [sys.executable, "-c", code], cwd=tileops_root, capture_output=True, text=True, timeout=300
+        [sys.executable, "-c", code],
+        cwd=tileops_root,
+        env={
+            **os.environ,
+            "PYTHONPATH": os.pathsep.join(
+                [
+                    str(tileops_root / "src"),
+                    str(tileops_root),
+                    str(tileops_root.parent.parent),
+                    os.environ.get("PYTHONPATH", ""),
+                ]
+            ),
+        },
+        capture_output=True,
+        text=True,
+        timeout=300,
     )
     out = (proc.stdout + proc.stderr).strip()
     return proc.returncode == 0, out
@@ -389,7 +415,9 @@ def main() -> None:
         else:
             print(f"[prog-mode] {func}: programming_mode={mode}")
 
-    target_dir = tileops_root / "tileops" / "kernels" / family / op_slug / f"{op_slug}_kernel"
+    target_dir = (
+        tileops_root / "src" / "tileops" / "_kernels" / family / op_slug / f"{op_slug}_kernel"
+    )
     integrated: dict[str, Path] = {}
     design_integrated: dict[str, Path] = {}
     print(f"[plan] op_slug={op_slug} family={family} target={target_dir}")
@@ -440,7 +468,13 @@ def main() -> None:
     ok, out = (
         (True, "skipped")
         if args.skip_smoke
-        else smoke_test(tileops_root, family, op_slug, wrapper_names, meta.get("kernel_class_name"))
+        else smoke_test(
+            tileops_root,
+            family,
+            op_slug,
+            wrapper_names,
+            meta.get("kernel_class_names") or meta.get("kernel_class_name"),
+        )
     )
     if not ok:
         print(out)

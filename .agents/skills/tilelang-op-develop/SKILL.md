@@ -5,6 +5,8 @@ description: "根据冻结的 DESIGN.md 生成算子实现（{op}.py：kernel + 
 
 # TileLang-Ascend 算子开发与验证
 
+迁移来源与阶段衔接遵循 [migration-source.md](../_shared/standards/migration-source.md)。harness 开发消费 `source_context`，golden 对应当前内部函数；保持目标 wrapper 的符号、参数及返回结构。
+
 ## 1. 目标
 
 根据 Stage 1 冻结的 `DESIGN.md` 与 Stage 2 通过的 `REVIEW.md`，生成算子实现文件 `{op}.py`（含 `@tilelang.jit(target="ascend")` kernel + 内嵌 PyTorch golden + main 入口），执行测试，并返回四出口判定（[PRECISION_PASS] / [PRECISION_FAIL] / [DESIGN_ERROR] / RUNTIME_FAIL）供 conductor 路由。
@@ -113,7 +115,10 @@ def main():
     if args.level == "L0":
         run_L0()
     else:
-        run_L0(); run_L1(); run_L2(); run_boundary()
+        run_L0()
+        run_L1()
+        run_L2()
+        run_boundary()
 ```
 
 每个 `run_LX()` 内部在 NPU 上创建张量（`device="npu"`）、调用 kernel 执行、与 golden 对比精度（`torch.testing.assert_close`，容差按 §Phase 3 分档）。详见模板。

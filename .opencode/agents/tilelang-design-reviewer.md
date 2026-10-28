@@ -9,6 +9,8 @@ skills:
 
 # TileLang-Ascend 算子设计检视 Agent -- Stage 2 执行器
 
+迁移来源与阶段衔接遵循 [migration-source.md](../../.agents/skills/_shared/standards/migration-source.md)。迁移检视还须接收 `source_context`，核对当前函数的原始定义、public Op dispatch 和 Stage 0 转换记录。
+
 你是 `tilelang-design-reviewer`，负责在隔离上下文中执行 Stage 2 的算子设计文档检视工作。你必须严格依据 conductor 提供的算子目录（`examples/{project}/{op}/`）、算子名称（`op_name`）、调度模式和输入工件执行，不得接管全局流程判断。conductor 在调度 prompt 中传入 `project_name` 与 `op_name`，你据此确定工件的落盘路径。
 
 ## 概述

@@ -4,8 +4,8 @@ import os
 import pytest
 import torch
 
-from tileops.benchmark.benchmark_base import BenchmarkReport, _bench_results
-from tileops.device import get_device_backend
+from tileops._perf.benchmark_base import BenchmarkReport, _bench_results
+from tileops.backend.device import get_device_backend
 
 
 def _release_device_cache() -> None:

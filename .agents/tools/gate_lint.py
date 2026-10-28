@@ -314,8 +314,7 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
                 _fail(
                     "S1-EQUIV-EXEC",
                     design_path,
-                    "§1.6.1 缺少等价性验证结果表（每采纳项：最大 ulp 差 / "
-                    "违反率 / EQUIV_PASS 结论——由 verify_equiv.py 执行产出）",
+                    "§1.6.1 缺少等价性验证结果表（每采纳项：最大 ulp 差 / 违反率 / EQUIV_PASS 结论——由 verify_equiv.py 执行产出）",
                 )
             )
         if "EQUIV_FAIL" in r161:
@@ -323,8 +322,7 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
                 _fail(
                     "S1-EQUIV-EXEC",
                     design_path,
-                    "§1.6.1 存在 EQUIV_FAIL 项——等价性未通过的优化项禁止采纳，"
-                    "须放弃该项或修正论证后重跑验证",
+                    "§1.6.1 存在 EQUIV_FAIL 项——等价性未通过的优化项禁止采纳，须放弃该项或修正论证后重跑验证",
                 )
             )
 
@@ -332,9 +330,7 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
     sec2 = region_all(sections, headings, "2")
     if sec2.strip() and not re.search(r"simt|simd|mixed", sec2):
         failures.append(
-            _fail(
-                "S1-MODE", design_path, "§2 编程模式选型缺少 simt/simd/mixed 结论"
-            )
+            _fail("S1-MODE", design_path, "§2 编程模式选型缺少 simt/simd/mixed 结论")
         )
 
     # --- §5 core-split 3 elements (fall back to whole doc, warn if moved) ---
@@ -342,7 +338,11 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
     # grid 划分（含核数依据）/ AIC-AIV 分工 / 同步策略（auto|manual）.
     sec5 = region_all(sections, headings, "5")
     cores_checks = [
-        ("S1-CORES-LOGICAL", ("num_blocks",), "① grid 划分（num_blocks 计算，一维 T.Kernel(N)）"),
+        (
+            "S1-CORES-LOGICAL",
+            ("num_blocks",),
+            "① grid 划分（num_blocks 计算，一维 T.Kernel(N)）",
+        ),
         (
             "S1-CORES-PHYSICAL",
             ("cube_core_num", "vector_core_num", "待标定"),
@@ -1167,8 +1167,7 @@ def perf_feedback_lint(path: str, repo_root: str):
                 _fail(
                     "S4-PERF-FEEDBACK-SCHEMA",
                     path,
-                    "缺少「{t}」章节（固定 schema：触发判定/参照锚定/假设/实测/"
-                    "影响面/反馈结论）".format(t=title),
+                    f"缺少「{title}」章节（固定 schema：触发判定/参照锚定/假设/实测/影响面/反馈结论）",
                 )
             )
 
@@ -1185,8 +1184,7 @@ def perf_feedback_lint(path: str, repo_root: str):
                 _fail(
                     "S4-PERF-FEEDBACK-ANCHOR",
                     path,
-                    "参照锚定缺少「参照实现」来源行（同族已知最优实现路径，"
-                    "或显式「未找到参照，天花板结论置信度降级」）",
+                    "参照锚定缺少「参照实现」来源行（同族已知最优实现路径，或显式「未找到参照，天花板结论置信度降级」）",
                 )
             )
         elif not degraded and not argued:
@@ -1194,8 +1192,7 @@ def perf_feedback_lint(path: str, repo_root: str):
                 _fail(
                     "S4-PERF-FEEDBACK-ANCHOR",
                     path,
-                    "参照锚定缺少「不可移植论证」（逐条结构差异 + 依据；"
-                    "未找到参照时须显式降级标注）",
+                    "参照锚定缺少「不可移植论证」（逐条结构差异 + 依据；未找到参照时须显式降级标注）",
                 )
             )
 
@@ -1224,8 +1221,7 @@ def perf_feedback_lint(path: str, repo_root: str):
             _fail(
                 "S4-PERF-FEEDBACK-METRIC",
                 path,
-                "实测章节缺少 do_bench(msprof)/npusim 口径证据"
-                "（do_bench(msprof) 唯一端到端时延口径，npusim 唯一周期级归因口径）",
+                "实测章节缺少 do_bench(msprof)/npusim 口径证据（do_bench(msprof) 唯一端到端时延口径，npusim 唯一周期级归因口径）",
             )
         )
 
@@ -1307,6 +1303,97 @@ def perf_lint(
 # ---------------------------------------------------------------------------
 
 
+def migration_source_lint(meta: dict, meta_path: str, repo_root: str):
+    """Check the current source contract without importing/executing device code."""
+    failures = []
+    gpu_root = meta.get("gpu_repo_root")
+
+    def fail(message):
+        failures.append(_fail("S0-SOURCE", meta_path, message))
+
+    if (
+        not isinstance(gpu_root, str)
+        or not os.path.isabs(gpu_root)
+        or not os.path.isdir(gpu_root)
+    ):
+        fail("gpu_repo_root 必须为存在的绝对目录")
+        return failures
+    if meta.get("source_layout") != "src":
+        fail("新源仓必须显式记录 source_layout=src")
+    source = meta.get("gpu_source")
+    if not isinstance(source, dict):
+        fail("新源仓缺少 gpu_source 对象")
+        return failures
+
+    def file_at(root, rel, label):
+        if not isinstance(rel, str) or not rel or os.path.isabs(rel):
+            fail(f"{label} 必须是非空相对文件路径")
+            return
+        root = os.path.realpath(root)
+        path = os.path.realpath(os.path.join(root, rel))
+        if os.path.commonpath((root, path)) != root or not os.path.isfile(path):
+            fail(f"{label} 路径越界或文件不存在：{rel}")
+
+    for key in ("manifest_path", "op_path"):
+        file_at(gpu_root, source.get(key), f"gpu_source.{key}")
+    for key in ("workload_paths", "test_paths", "bench_paths"):
+        paths = source.get(key)
+        if not isinstance(paths, list) or not paths:
+            fail(f"gpu_source.{key} 必须是非空列表")
+        else:
+            for rel in paths:
+                file_at(gpu_root, rel, f"gpu_source.{key}")
+    bindings = source.get("kernel_bindings")
+    if not isinstance(bindings, list) or not bindings:
+        fail("gpu_source.kernel_bindings 必须是非空列表")
+    else:
+        for binding in bindings:
+            if (
+                not isinstance(binding, dict)
+                or not isinstance(binding.get("class"), str)
+                or not binding["class"].isidentifier()
+            ):
+                fail("kernel_bindings 项必须含合法 class")
+                continue
+            file_at(gpu_root, binding.get("path"), "kernel_bindings.path")
+    functions = source.get("function_sources")
+    expected = meta.get("extracted_functions")
+    if (
+        not isinstance(functions, dict)
+        or not isinstance(expected, list)
+        or any(not isinstance(name, str) for name in expected)
+        or set(functions) != set(expected)
+    ):
+        fail("function_sources 必须逐项覆盖 extracted_functions，且无额外函数")
+    else:
+        for name, rel in functions.items():
+            file_at(gpu_root, rel, f"function_sources.{name}")
+    if not isinstance(source.get("revision"), str) or not source["revision"].strip():
+        fail("gpu_source.revision 缺失")
+    target = os.path.join(repo_root, "examples", "TileOPs")
+    file_at(target, meta.get("conversion_path"), "conversion_path")
+    for key in ("wrapper_path", "extracted_file", "test_path", "bench_path"):
+        rel = meta.get(key)
+        file_at(target, rel, key)
+        prefix = {
+            "wrapper_path": "src/tileops/_kernels/",
+            "extracted_file": "src/tileops/_kernels/",
+            "test_path": "tests/ops/",
+            "bench_path": "benchmarks/ops/",
+        }[key]
+        if not isinstance(rel, str) or not rel.startswith(prefix):
+            fail(f"{key} 必须使用目标布局前缀 {prefix}")
+    classes = meta.get("kernel_class_names")
+    if classes is not None and (
+        not isinstance(classes, list)
+        or not classes
+        or any(not isinstance(n, str) or not n.isidentifier() for n in classes)
+        or meta.get("kernel_class_name") not in classes
+    ):
+        fail("kernel_class_names 必须为类名列表，且包含 kernel_class_name")
+    return failures
+
+
 def meta_lint(meta_path: str, repo_root: str):
     """Stage 0 gate: .migration_meta.json schema + TileOPs 7-file scaffold."""
     failures, warnings = [], []
@@ -1324,6 +1411,8 @@ def meta_lint(meta_path: str, repo_root: str):
         )
         return failures, warnings
 
+    if not isinstance(meta, dict):
+        return [_fail("S0-META", meta_path, "meta 顶层必须是对象")], warnings
     for field in ("op_slug", "family", "extracted_functions"):
         if field not in meta or not meta[field]:
             failures.append(
@@ -1332,20 +1421,28 @@ def meta_lint(meta_path: str, repo_root: str):
                 )
             )
     funcs = meta.get("extracted_functions") or []
-    if isinstance(funcs, list) and not funcs:
+    if (
+        not isinstance(funcs, list)
+        or not funcs
+        or any(not isinstance(f, str) or not f.isidentifier() for f in funcs)
+    ):
         failures.append(
-            _fail(
-                "S0-META-FUNC", meta_path, "extracted_functions 为空（至少 1 个函数）"
-            )
+            _fail("S0-META-FUNC", meta_path, "extracted_functions 必须为非空函数名列表")
         )
+        return failures, warnings
+    if len(set(funcs)) != len(funcs):
+        failures.append(
+            _fail("S0-META-FUNC", meta_path, "extracted_functions 不得重复")
+        )
+    failures += migration_source_lint(meta, meta_path, repo_root)
 
     family = meta.get("family")
     op_slug = meta.get("op_slug")
     if family and op_slug:
         checks = [
-            ("S0-SCAFFOLD", f"tileops/manifest/{family}.yaml"),
-            ("S0-SCAFFOLD", f"tileops/workloads/{family}.py"),
-            ("S0-SCAFFOLD", f"tileops/kernels/{family}/{op_slug}/{op_slug}.py"),
+            ("S0-SCAFFOLD", f"src/tileops/manifest/spec/{family}.yaml"),
+            ("S0-SCAFFOLD", f"workloads/{family}.py"),
+            ("S0-SCAFFOLD", f"src/tileops/_kernels/{family}/{op_slug}/{op_slug}.py"),
         ]
         for test_slug in [meta.get("test_slug")] if meta.get("test_slug") else []:
             checks.append(("S0-SCAFFOLD", f"tests/ops/test_{test_slug}.py"))
@@ -1405,7 +1502,7 @@ def integration_lint(migration_state: dict, repo_root: str):
         return failures, warnings
     pkg_dir = os.path.join(
         repo_root,
-        f"examples/TileOPs/tileops/kernels/{family}/{op_slug}/{op_slug}_kernel",
+        f"examples/TileOPs/src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel",
     )
     if not os.path.isdir(pkg_dir):
         failures.append(_fail("S5-PKG", pkg_dir, "集成包目录不存在"))
@@ -1425,7 +1522,8 @@ def integration_lint(migration_state: dict, repo_root: str):
                     _fail("S5-FUNCS", path, f"集成包缺少函数 {func} 的 {suffix} 文件")
                 )
     wrapper = os.path.join(
-        repo_root, f"examples/TileOPs/tileops/kernels/{family}/{op_slug}/{op_slug}.py"
+        repo_root,
+        f"examples/TileOPs/src/tileops/_kernels/{family}/{op_slug}/{op_slug}.py",
     )
     wtext = _read_text(wrapper)
     source_modes = set()
@@ -1555,6 +1653,7 @@ def integration_lint(migration_state: dict, repo_root: str):
             _fail("S5-REPORT-META", meta_file, "迁移元数据缺少 manifest 算子名 op_name")
         )
         return failures, warnings
+    failures += migration_source_lint(meta, meta_file, repo_root)
     if run.get("operator") != meta["op_name"]:
         failures.append(
             _fail("S5-REPORT-OP", run_path, "报告算子与迁移元数据 op_name 不一致")
@@ -1843,13 +1942,27 @@ FORBIDDEN_WORD_RES = [
     (re.compile(r"tladapter"), "tladapter"),
     (re.compile(r"910B2C"), "910B2C"),
     (re.compile(r"NPUUtils"), "NPUUtils"),
-    (re.compile(r"\bASCEND_MODE\b|\bTILELANG_ASCEND_MODE\b|\bascend_mode\b"), "ASCEND_MODE"),
+    (
+        re.compile(r"\bASCEND_MODE\b|\bTILELANG_ASCEND_MODE\b|\bascend_mode\b"),
+        "ASCEND_MODE",
+    ),
     # npuir v-prefix top-level API usage (T.simd.v* is legal ascend dialect).
-    (re.compile(r"T\.(?:vadd|vmul|vexp|vcast|vbrc|vrsqrt|vselect|vcmp|vsub|vmax)\("), "T.v*() v-prefix API"),
+    (
+        re.compile(r"T\.(?:vadd|vmul|vexp|vcast|vbrc|vrsqrt|vselect|vcmp|vsub|vmax)\("),
+        "T.v*() v-prefix API",
+    ),
     # npuir-context env script (CANN's own set_env.sh is legal).
-    (re.compile(r"(?<!CANN )(?:source\s+\S*set_env\.sh|set_env\.sh(?=.*npuir))"), "set_env.sh(npuir)"),
+    (
+        re.compile(r"(?<!CANN )(?:source\s+\S*set_env\.sh|set_env\.sh(?=.*npuir))"),
+        "set_env.sh(npuir)",
+    ),
     # Legacy programming-mode enums (subagent name tilelang-op-developer is fine).
-    (re.compile(r"Developer/Expert|Developer\s*模式|[Ee]xpert\s*模式|developer\|expert|Developer\|Expert"), "Developer/Expert mode"),
+    (
+        re.compile(
+            r"Developer/Expert|Developer\s*模式|[Ee]xpert\s*模式|developer\|expert|Developer\|Expert"
+        ),
+        "Developer/Expert mode",
+    ),
 ]
 
 _HISTORICAL_NOTE_MARKERS = (
@@ -1915,18 +2028,18 @@ def _main(argv=None):
 
     parser = argparse.ArgumentParser(
         prog="gate_lint",
-        description="tilelang-op-conductor 机械门禁（库形态供 statectl 调用；"
-        "CLI 当前仅提供禁用词验收检查）",
+        description="tilelang-op-conductor 机械门禁（库形态供 statectl 调用；CLI 当前仅提供禁用词验收检查）",
     )
     parser.add_argument(
         "--forbidden-words",
         action="store_true",
-        help="扫描 .opencode/ + .agents/ 中的旧后端禁用词（A5 适配验收门，"
-        "豁免：backend-glossary.md 与显式历史注记行）",
+        help="扫描 .opencode/ + .agents/ 中的旧后端禁用词（A5 适配验收门，豁免：backend-glossary.md 与显式历史注记行）",
     )
     parser.add_argument(
         "--repo-root",
-        default=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        default=os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ),
         help="仓库根目录（默认：脚本位置上两级）",
     )
     args = parser.parse_args(argv)

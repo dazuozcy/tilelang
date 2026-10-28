@@ -21,11 +21,11 @@ Spec-conformant interface:
 import pytest
 import torch
 
-from tileops.device import get_device_backend
-from tileops.ops.reduction.logsumexp import LogSumExpFwdOp
-from tileops.testing.test_base import TestBase
-from tileops.workloads.reduction import LogSumExpWorkload
-from tileops.workloads.workload_base import FixtureBase
+from tests.workload_test_base import TestBase
+from tileops._ops.reduction.logsumexp import LogSumExpFwdOp
+from tileops.backend.device import get_device_backend
+from workloads.reduction import LogSumExpWorkload
+from workloads.workload_base import FixtureBase
 
 
 def _device() -> str:
@@ -53,7 +53,9 @@ class LogSumExpFixture(FixtureBase):
             "shape, dim, dtype",
             [
                 # Smoke: 2D, dim=-1, fp32, pow2
-                pytest.param((32, 256), -1, torch.float32, marks=[pytest.mark.smoke, pytest.mark.packaging]),
+                pytest.param(
+                    (32, 256), -1, torch.float32, marks=[pytest.mark.smoke, pytest.mark.packaging]
+                ),
                 pytest.param((32, 256), -1, torch.float16, marks=pytest.mark.smoke),
                 pytest.param((32, 256), -1, torch.bfloat16, marks=pytest.mark.smoke),
                 # dim=-1: dtypes x pow2/non-pow2

@@ -6,6 +6,19 @@ description: Add a new operator to the TileOPs project (Ascend A5 backend, targe
 
 Add a new operator to the `TileOPs/` standalone Ascend A5 project.
 
+## Source layout compatibility (read first)
+
+For the current GPU source `/home/zuo/code/TileOPs`, read
+[the source-layout adapter](references/tileops-src-layout.md) before Phase 0.
+The cross-stage contract is `.agents/skills/_shared/standards/migration-source.md`
+(relative to the outer tilelang repository). Its new-source rules override any outdated copying assumptions below. Both source and target use
+`src/tileops/{_ops,_kernels,manifest/spec}` with root `workloads/`.
+Only this layout is supported; do not generate old-layout aliases.
+Use Python >= 3.10 for the AST tools; do not import the GPU package.
+No NPU is needed for discovery/extraction/static checks. Without NPU, do not
+run import smoke, pytest collection, correctness or profiling, and do not
+claim full Tier 1/Tier 2 success.
+
 ## Prerequisites
 
 - **A5 project root** (working directory): the standalone Ascend `TileOPs/`
@@ -18,16 +31,16 @@ Add a new operator to the `TileOPs/` standalone Ascend A5 project.
 - Ascend A5 environment: `torch_npu` installed,
   `torch.npu.is_available() == True` (Ascend950PR_9579, `--npu-arch=dav-3510`,
   CANN 9.2.0; 28 cube cores / 56 vector cores).
-- The A5 `TileOPs/` package is `pip install -e`'d or on `PYTHONPATH`.
+- The A5 `TileOPs/` package is installed editable or its `src/` is on `PYTHONPATH`; include the project root as well for workloads/tests/benchmarks.
 - **Environment trap**: prefix python commands with
-  `PYTHONPATH=/path/to/tilelang-fork` (this repository's root). The global
+  `PYTHONPATH=/path/to/tilelang-fork:/path/to/tilelang-fork/examples/TileOPs/src:/path/to/tilelang-fork/examples/TileOPs` (this repository's root). The global
   `PYTHONPATH` may contain other TileLang forks that pollute imports.
 
 ## Path notation
 
 - `{gpu_repo_root}` = the caller-provided GPU `TileOPs/` repo root.
   All GPU-side source paths in this skill are relative to `{gpu_repo_root}`.
-- Unprefixed `tileops/`, `tests/`, `benchmarks/`, `docs/` paths are relative
+- Unprefixed `src/tileops/`, `workloads/`, `tests/`, `benchmarks/`, `docs/` paths are relative
   to the A5 project root (the working directory) — these are A5-side
   targets/references.
 
@@ -39,7 +52,7 @@ The caller provides:
 2. **`gpu_repo_root`** (required) — absolute path to the GPU `TileOPs/`
    project repo root, e.g. `/home/user/TileOPs`. Used as the source for
    Phase 0 and all "Port from GPU" steps.
-3. **`family`** (optional) — op family directory, e.g. `reduction` (default: `reduction`)
+3. **`family`** (optional) — derive from the source manifest; reject a conflicting explicit value.
 
 ## Output
 
@@ -47,20 +60,20 @@ The caller provides:
 
 | #  | File                                           | Purpose                                                 |
 | -- | ---------------------------------------------- | ------------------------------------------------------- |
-| S1 | `tileops/manifest/{family}.yaml`             | Manifest entry (signature, workloads, roofline, source) |
-| S2 | `tileops/workloads/{family}.py`              | Workload class (input generation)                       |
-| S3 | `tileops/kernels/{family}/{op_slug}/` (`{op_slug}.py` + `__init__.py` + extracted kernels) | A5 kernel package (TileLang-based, ascend target)      |
-| S4 | `tileops/ops/{family}/{op_slug}.py`          | Op class (validation, reshape, dispatch, roofline)      |
+| S1 | `src/tileops/manifest/spec/{family}.yaml`             | Manifest entry (signature, workloads, roofline, source) |
+| S2 | `workloads/{family}.py`              | Workload class (input generation)                       |
+| S3 | `src/tileops/_kernels/{family}/{op_slug}/` (`{op_slug}.py` + `__init__.py` + extracted kernels) | A5 kernel package (TileLang-based, ascend target)      |
+| S4 | `src/tileops/_ops/{family}/{op_slug}.py`          | Op class (validation, reshape, dispatch, roofline)      |
 | S5 | `tests/ops/test_{op_slug}.py`                | Correctness tests vs PyTorch reference                  |
 | S6 | `benchmarks/ops/bench_{op_slug}.py`          | Performance benchmarks (manifest-driven)                |
-| S7 | `tileops/{kernels,ops}/{family}/__init__.py` + `tileops/kernels/{family}/{op_slug}/__init__.py` | Package exports (updated/created) |
+| S7 | `src/tileops/{_kernels,_ops}/{family}/__init__.py` + `src/tileops/{family}.py` + `src/tileops/_kernels/{family}/{op_slug}/__init__.py` | Package exports (updated/created) |
 
 ## Methodology
 
 **The GPU op's end-to-end flow is the source of truth.** Each op has its own
 flow — input count, reshape strategy, kernel internal structure, validation
 logic, roofline formula — dictated by the GPU implementation in
-`{gpu_repo_root}/tileops/`.
+`{gpu_repo_root}/src/tileops/`.
 Do **not** force every op into a single template (e.g. a reduction-family
 flow). Instead:
 
@@ -92,12 +105,12 @@ implementation under `{gpu_repo_root}/`:
 
 | Artifact       | Where to find it                                                                         |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Manifest entry | `{gpu_repo_root}/tileops/manifest/<family>*.yaml` — grep for `{op_name}`            |
-| Op class       | `{gpu_repo_root}/tileops/ops/<family>/*.py` — grep for `class {op_name}`            |
-| Kernel class   | `{gpu_repo_root}/tileops/kernels/<family>/*.py` — from manifest `source.kernel_map` |
+| Manifest entry | `{gpu_repo_root}/src/tileops/manifest/spec/<family>*.yaml` — grep for `{op_name}`            |
+| Op class       | `{gpu_repo_root}/src/tileops/_ops/<family>/*.py` — grep for `class {op_name}`            |
+| Kernel class   | `{gpu_repo_root}/src/tileops/_kernels/<family>/*.py` — follow Op `kernel_types` and imported classes |
 | Workload       | `{gpu_repo_root}/workloads/<family>.py` — grep for the op's workload class            |
-| Test           | `{gpu_repo_root}/tests/ops/test_*.py` — from manifest `source.test`                 |
-| Benchmark      | `{gpu_repo_root}/benchmarks/ops/bench_*.py` — from manifest `source.bench`          |
+| Test           | `{gpu_repo_root}/tests/ops/test_*.py` — follow actual Op imports/calls and shared fixtures                 |
+| Benchmark      | `{gpu_repo_root}/benchmarks/ops/bench_*.py` — follow `bench.cases(Op)` / actual Op calls          |
 
 Read all 6 GPU files before starting. Understand and note:
 
@@ -114,8 +127,7 @@ Read all 6 GPU files before starting. Understand and note:
   applies to this op.
 - **Constructor params**: What does the Op `__init__` take? (shapes, dtype,
   op-specific params like `dim`, `weight`, `rounding_mode`, ...)
-- **Roofline formula**: `flops` and `bytes` expressions — copy verbatim
-  (roofline is device-agnostic).
+- **Roofline formula**: `flops` and `bytes` expressions — preserve cost semantics and translate symbolic indices to the local evaluator.
 
 Also read the existing A5 adaptation guide (in the A5 project root):
 `docs/gpu_to_ascend_adaptation.md` — the catalogue of
@@ -157,7 +169,7 @@ run on A5 until the conductor re-implements them for `target="ascend"`.
 | #   | GPU original                                                                                                                          | A5 adaptation                                                                                                                                                                                                                                                                                                                                                                                               |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | K5  | `supported_archs = [80, 86, 89, 90]` (CUDA SM ints)                                                                                 | `supported_archs = ["Ascend950"]` (dav-3510 arch id)                                                                                                                                                                                                                                                                                                                                                                       |
-| K6  | `device_smem_budget` via `torch.cuda.get_device_properties()`                                                                     | UB-capacity semantics: A5 physical UB is 248KB (216KB usable under SimtVF); query via the `tileops.device` backend surface instead of `torch.cuda.*`. `device_smem_budget` keeps its role as the per-block workspace budget check (UB budget)                                                                                                                                                                                                                                                                                                                              |
+| K6  | `device_smem_budget` via `torch.cuda.get_device_properties()`                                                                     | UB-capacity semantics: A5 physical UB is 248KB (216KB usable under SimtVF); query via the `tileops.backend.device` backend surface instead of `torch.cuda.*`. `device_smem_budget` keeps its role as the per-block workspace budget check (UB budget)                                                                                                                                                                                                                                                                                                                              |
 | K7  | `@torch.library.custom_op("top::...")`                                                                                              | `@torch.library.custom_op("ascend::...")`                                                                                                                                                                                                                                                                                                                                                                    |
 | K8  | `autotune_configs`, `autotune()`, `_tile_n_candidates`, `_MAX_TILE_N_CANDIDATES`, `tune` param, `tune_by_forward`         | **All removed** — heuristic config selection only; `init_config(config)` (no `tune` arg)                                                                                                                                                                                                                                                                                                          |
 | K9  | `threads` in `default_config` dict and `forward` call                                                                           | **Removed** — reduction ops: `default_config` returns `{"block_m", "tile_n"}`; elementwise ops: `default_config` returns `{"block_size"}` (see K11); `forward` does not pass `threads`                                                                                                                                                                                                    |
@@ -171,7 +183,7 @@ run on A5 until the conductor re-implements them for `target="ascend"`.
 | O1 | `x.is_cuda` device check                                   | `backend.is_device_tensor(x)` via `get_device_backend()`                                             |
 | O2 | `device="cuda"` hard-coded                                 | `backend.name` via `get_device_backend()`                                                            |
 | O3 | `tune` param in `__init__` and `_get_or_create_kernel` | **Removed** — kernel constructor takes `(M, N, op_kind, dtype, config=None, device_index=None)` |
-| O4 | `from tileops.utils import get_sm_version`                 | `from tileops.device import get_device_backend`                                                        |
+| O4 | `from tileops._utils import get_sm_version`                 | `from tileops.backend.device import get_device_backend`                                                        |
 | O5 | `from .compile_boundary import register_instance`          | Removed (not used on A5)                                                                                |
 | O6 | Op-specific flow (reshape, validate, dispatch, roofline)     | **Preserved unchanged** — only device-specific calls adapted                                      |
 
@@ -201,16 +213,13 @@ Execute S1-S7 in order. For each step:
 
 ### Step S1 — Manifest entry
 
-Edit `tileops/manifest/{family}.yaml` (create if absent). Add a top-level
+Edit `src/tileops/manifest/spec/{family}.yaml` (create if absent). Add a top-level
 key `{op_name}:`.
 
-**Port from GPU**: Copy the manifest entry from
-`{gpu_repo_root}/tileops/manifest/<family>*.yaml`.
+**Port from GPU**: Read `src/tileops/manifest/spec/<family>*.yaml` in the current source. Translate the current signature/workloads/roofline to the local A5 schema per the source-layout adapter; do not copy the new schema verbatim.
 
-- **Preserve verbatim**: `signature` (inputs, outputs, params, shape_rules),
-  `roofline` formula (flops, bytes — device-agnostic).
-- **Paths**: `source` section paths use `tileops/` (same as the package
-  directory); `tests/ops/` and `benchmarks/ops/` paths stay the same pattern.
+- **Preserve semantics**: signature, constructor defaults, dtype combinations, workload calls and roofline costs.
+- **Paths**: `source` section paths use `src/tileops/_ops/` and `src/tileops/_kernels/` relative to the target root; `tests/ops/` and `benchmarks/ops/` paths stay the same pattern.
 - **Workloads**: at least 4 entries — 1 smoke (small) + 3 full (realistic
   shapes). First workload is the smoke case. May reuse GPU shapes or adjust
   for A5 memory.
@@ -231,7 +240,7 @@ for each input. This affects S6 (benchmark parametrization) — see below.
 
 ### Step S2 — Workload class
 
-Edit `tileops/workloads/{family}.py` (create if absent).
+Edit `workloads/{family}.py` (create if absent).
 
 **Port from GPU**: Copy the workload class from `{gpu_repo_root}/workloads/<family>.py`.
 
@@ -241,16 +250,16 @@ Edit `tileops/workloads/{family}.py` (create if absent).
 
 If the GPU workload inherits a GPU base class (e.g. `RandnWorkload`), the
 A5 version should inherit the A5-adapted equivalent
-(`tileops.workloads.workload_base.RandnWorkload`). If the GPU workload
+(`workloads.workload_base.RandnWorkload`). If the GPU workload
 is a standalone class with custom `gen_inputs()`, port the class and apply
 W1 to every `torch.*` call that hard-codes `device="cuda"`.
 
 ### Step S3 — A5 kernel (TileLang-based)
 
-Create `tileops/kernels/{family}/{op_slug}/{op_slug}.py` inside a new
+Create `src/tileops/_kernels/{family}/{op_slug}/{op_slug}.py` inside a new
 `{op_slug}/` subfolder under the family directory. Each op gets its own
 subfolder so that the extracted TileLang kernel file and the kernel class
-file live together under `tileops/kernels/{family}/{op_slug}/`. The
+file live together under `src/tileops/_kernels/{family}/{op_slug}/`. The
 subfolder is a Python package (requires an `__init__.py`, created in
 Part B below). The file has two parts with different treatment:
 
@@ -269,12 +278,12 @@ conductor to reimplement for `target="ascend"`.
 python .agents/skills/add-ascend-op/scripts/extract_tl_kernel.py \
   --op-name {op_name} \
   --gpu-repo-root {gpu_repo_root} \
-  --out tileops/kernels/{family}/{op_slug}
+  --out src/tileops/_kernels/{family}/{op_slug}
 ```
 
 This extracts the GPU TileLang kernel functions (the `@tilelang.jit` +
 `@T.prim_func` implementations) from
-`{gpu_repo_root}/tileops/kernels/<family>/*.py` and writes them to a
+`{gpu_repo_root}/src/tileops/_kernels/<family>/*.py` and writes them to a
 single file inside the `{op_slug}/` subfolder. When `--out` is a
 directory, the script auto-generates the filename inside it; when
 `--out` is a file path, it is used directly. The script prints the list
@@ -283,7 +292,7 @@ of extracted function names **and** the output file path (via
 statement (below) and the per-kernel output prompts (end of this skill).
 
 **Import the extracted functions** at the top of
-`tileops/kernels/{family}/{op_slug}/{op_slug}.py`:
+`src/tileops/_kernels/{family}/{op_slug}/{op_slug}.py`:
 
 ```python
 from .{extracted_module} import (
@@ -351,7 +360,7 @@ extracted in Part A), which the conductor will reimplement for
 `target="ascend"`.
 
 **Port from GPU**: Copy the `custom_op` wrapper, `register_fake`, and the
-Kernel class from `{gpu_repo_root}/tileops/kernels/<family>/*.py`.
+Kernel class from `{gpu_repo_root}/src/tileops/_kernels/<family>/*.py`.
 
 - **Preserve**: `op_kind` validation, config selection logic, tiling
   heuristics (`_tile_n_for_block_m`, `default_config`), `forward` dispatch
@@ -375,22 +384,22 @@ template):
   The class structure (config selection, cache logic) is ported so it is
   ready once the kernel functions are rewritten for the Ascend target.
 
-Create `tileops/kernels/{family}/{op_slug}/__init__.py` to make the
+Create `src/tileops/_kernels/{family}/{op_slug}/__init__.py` to make the
 `{op_slug}/` subfolder a proper Python package and re-export the kernel
 class so that the family-level `__init__.py` can import it by package
 name:
 
 ```python
-from tileops.kernels.{family}.{op_slug}.{op_slug} import {KernelClassName}
+from tileops._kernels.{family}.{op_slug}.{op_slug} import {KernelClassName}
 
 __all__ = ["{KernelClassName}"]
 ```
 
-Then update `tileops/kernels/{family}/__init__.py` to export the kernel
+Then update `src/tileops/_kernels/{family}/__init__.py` to export the kernel
 class from the op package:
 
 ```python
-from tileops.kernels.{family}.{op_slug} import {KernelClassName}
+from tileops._kernels.{family}.{op_slug} import {KernelClassName}
 ```
 
 This import path is the same as the flat layout would use, because the
@@ -398,9 +407,9 @@ op package's `__init__.py` re-exports the class.
 
 ### Step S4 — Op class
 
-Create `tileops/ops/{family}/{op_slug}.py`.
+Create `src/tileops/_ops/{family}/{op_slug}.py`.
 
-**Port from GPU**: Copy the Op class from `{gpu_repo_root}/tileops/ops/<family>/*.py`.
+**Port from GPU**: Copy the Op class from `{gpu_repo_root}/src/tileops/_ops/<family>/*.py`.
 
 - **Preserve**: constructor signature (params, shapes, dtype), validation
   logic (`_validate`), reshape/transpose strategy, `forward` flow (input
@@ -421,7 +430,8 @@ template):
 - **Do not assume any of these structures.** Read the GPU Op and port its
   actual flow.
 
-Update `tileops/ops/{family}/__init__.py` to export the op class.
+Update `src/tileops/_ops/{family}/__init__.py` and the public
+`src/tileops/{family}.py` to export the op class.
 
 ### Step S5 — Tests
 
@@ -469,20 +479,20 @@ to migrate this operator's workloads and performance measurements.
   benchmark entirely, rather than leaving commented-out code.
 - Classify a baseline by its purpose, not by whether it uses PyTorch or has a
   `torch` tag: a native operator such as `F.mish` can be a performance
-  baseline, whereas `ssd_chunk_scan_fwd_ref` from `tileops.testing` is an
+  baseline, whereas `ssd_chunk_scan_fwd_ref` from `tests.workload_test_base` is an
   accuracy reference.
 - **Apply T3-T4** from the Standard A5 Adaptations section.
 - **Measurement authority**: end-to-end latency is measured solely by
   `tilelang.profiler.do_bench(fn, backend="msprof")` (milliseconds);
   cycle-level attribution is done in npusim. The Tier 2 CLI
-  (`python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof`)
+  (`PYTHONPATH=src:.:../.. python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof`)
   wraps `do_bench` for reporting.
 
 **Single-input vs multi-input parametrization**:
 
 - **Single-input ops** (1 tensor input): use
   `workloads_to_params({op_name}, include_extra=True)` from
-  `tileops.benchmark.benchmark_base`. This reads the manifest and
+  `tileops._perf.benchmark_base`. This reads the manifest and
   generates `(shape, dtype, op_params)` params. The manifest's
   `single_input_workload_contract` validates that the op has exactly 1
   tensor input.
@@ -503,22 +513,22 @@ Run these commands from the A5 project root (`examples/TileOPs/`):
 
 ```bash
 # 1. Import check (verifies all imports + class structure are valid)
-PYTHONPATH=/path/to/tilelang-fork python -c "
-from tileops.kernels.{family}.{op_slug} import {KernelClassName}
-from tileops.ops.{family}.{op_slug} import {OpName}
-from tileops.workloads.{family} import {OpName}Workload
+PYTHONPATH=/path/to/tilelang-fork:/path/to/tilelang-fork/examples/TileOPs/src:/path/to/tilelang-fork/examples/TileOPs python -c "
+from tileops._kernels.{family}.{op_slug} import {KernelClassName}
+from tileops._ops.{family}.{op_slug} import {OpName}
+from workloads.{family} import {OpName}Workload
 from tileops.manifest import load_manifest
 assert '{OpName}' in load_manifest()
 print('OK: imports + structure valid')
 "
 
 # 2. Lint (if ruff available)
-ruff check tileops/kernels/{family}/ tileops/ops/{family}/ \
-  tileops/workloads/{family}.py \
+ruff check src/tileops/_kernels/{family}/ src/tileops/_ops/{family}/ \
+  workloads/{family}.py \
   tests/ops/test_{op_slug}.py benchmarks/ops/bench_{op_slug}.py
 
 # 3. Manifest validation (verifies workload contract)
-PYTHONPATH=/path/to/tilelang-fork python -c "
+PYTHONPATH=/path/to/tilelang-fork:/path/to/tilelang-fork/examples/TileOPs/src:/path/to/tilelang-fork/examples/TileOPs python -c "
 from tileops.manifest import load_workloads
 wl = load_workloads('{OpName}')
 assert len(wl) >= 4, 'need >= 4 workloads'
@@ -554,8 +564,8 @@ conductor (Stage 1-3) and integrated into the TileOPs wrapper (via
 TileOPs project root (`examples/TileOPs/` in this repository):
 
 ```bash
-PYTHONPATH=/path/to/tilelang-fork \
-  python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof
+PYTHONPATH=/path/to/tilelang-fork:/path/to/tilelang-fork/examples/TileOPs/src:/path/to/tilelang-fork/examples/TileOPs \
+  PYTHONPATH=src:.:../.. python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof
 ```
 
 Use the PascalCase manifest key `{op_name}`, not `{op_slug}`. The report
@@ -593,7 +603,7 @@ unless prefixed with `{gpu_repo_root}/`.
 - **Adaptation guide**: `docs/gpu_to_ascend_adaptation.md` (A5 project) —
   the catalogue of GPU TileLang → Ascend A5 adaptation points (common
   mechanism + per-family index). Read this before starting.
-- **GPU source of truth**: `{gpu_repo_root}/tileops/` — the GPU op's
+- **GPU source of truth**: `{gpu_repo_root}/src/tileops/` — the GPU op's
   end-to-end implementation (manifest, ops, kernels, workloads, tests,
   benchmarks). Consult Phase 0 for the per-artifact path map.
 - **Ascend dialect authority**: `.agents/skills/tilelang-ascend/SKILL.md`
@@ -601,13 +611,13 @@ unless prefixed with `{gpu_repo_root}/`.
   programming reference for the conductor's re-implementation (thread
   hierarchy, memory, GEMM, synchronization, profiling). Exact API
   signatures: `tilelang/ascend/language/` source.
-- **Device backend**: `tileops/device.py` — the single device adaptation
+- **Device backend**: `src/tileops/backend/device.py` — the single device adaptation
   surface; all device-specific code goes through `get_device_backend()`.
-- **Kernel base**: `tileops/kernels/kernel_base.py` — A5-adapted
+- **Kernel base**: `src/tileops/_kernels/kernel_base.py` — A5-adapted
   `Kernel` base (autotune removed, `init_config(config)` without `tune`).
-- **Op base**: `tileops/ops/op_base.py` — A5-adapted `Op` base
+- **Op base**: `src/tileops/_ops/op_base.py` — A5-adapted `Op` base
   (arch check via backend name, no `tune`).
-- **Reduction primitives**: `tileops/kernels/reduction/_primitives.py` —
+- **Reduction primitives**: `src/tileops/_kernels/reduction/_primitives.py` —
   `device_smem_budget` (UB budget), `align_up`, `compute_tile_n`,
   T.macro factories (all A5-compatible).
 
@@ -675,7 +685,7 @@ written in Chinese to match the conductor agent's working language.
 ```
 迁移 {op} 算子 {op_name}。 其 TileLang 实现函数 {kernel_function_name} 在 {extracted_file}。
 {kernel_function_name} 是对外接口，不要改变接口的参数(除非该参数跟后端实现相关，在迁移时需要适配)。
-{op_name} 的规格见 examples/TileOPs/tileops/manifest/{family}.yaml中 {op_name} 的 workloads 部分。
+{op_name} 的规格见 examples/TileOPs/src/tileops/manifest/spec/{family}.yaml中 {op_name} 的 workloads 部分。
 精度用例见 examples/TileOPs/tests/ops/test_{test_slug}.py，
 性能用例见 examples/TileOPs/benchmarks/ops/bench_{bench_slug}.py
 编程模式由 Stage 1 设计裁定（默认 simt，auto_schedule yes）；kernel 模块 docstring 须声明 programming_mode: simt|simd|mixed。
@@ -695,7 +705,7 @@ shared across all prompts for the same op.
 | `{op}`                   | shared               | `op_slug` derived in S1 (snake_case of the op)                                                                                                                                                                                                                                           | `logsumexp`                                             |
 | `{op_name}`              | shared               | PascalCase manifest key from Inputs                                                                                                                                                                                                                                                        | `LogSumExpFwdOp`                                        |
 | `{kernel_function_name}` | **per-kernel** | A single function name from the extraction script's reported function list in S3 Part A                                                                                                                                                                                                    | `_logsumexp_kernel_single`                              |
-| `{extracted_file}`       | shared               | The output file path printed by the extraction script in S3 Part A (the`[ok] wrote <path>` line). When `--out` is a directory, the script auto-generates the filename inside it; when `--out` is a file path, it is used directly. All extracted functions live in this single file. | `tileops/kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py` |
+| `{extracted_file}`       | shared               | The output file path printed by the extraction script in S3 Part A (the`[ok] wrote <path>` line). When `--out` is a directory, the script auto-generates the filename inside it; when `--out` is a file path, it is used directly. All extracted functions live in this single file. | `src/tileops/_kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py` |
 | `{family}`               | shared               | Op family directory from Inputs                                                                                                                                                                                                                                                            | `reduction`                                             |
 | `{test_slug}`            | shared               | Test file slug extracted from manifest`source.test` (strip `tests/ops/test_` prefix and `.py` suffix)                                                                                                                                                                                | `softmax`                                               |
 | `{bench_slug}`           | shared               | Bench file slug extracted from manifest`source.bench` (strip `benchmarks/ops/bench_` prefix and `.py` suffix)                                                                                                                                                                        | `softmax`                                               |
@@ -710,7 +720,7 @@ shared across all prompts for the same op.
   if it is among the extracted names — each gets its own prompt.
 - `{extracted_file}` is the **shared** output file path printed by the
   extraction script (the `[ok] wrote <path>` line). When `--out` is a
-  directory (e.g. `tileops/kernels/{family}/{op_slug}`), the script
+  directory (e.g. `src/tileops/_kernels/{family}/{op_slug}`), the script
   auto-generates the filename inside it; when `--out` is a file path, it
   is used directly. This is the single file where all GPU kernel
   functions now live in the A5 project (extracted from the GPU repo by
@@ -725,17 +735,17 @@ shared across all prompts for the same op.
 ### Reference example
 
 For `LogSumExpFwdOp` (family `reduction`, GPU repo root
-`/home/tilelang/zuochuanuong/TileOPs-fork`), after running:
+`/home/zuo/code/TileOPs`), after running:
 
 ```bash
 python .agents/skills/add-ascend-op/scripts/extract_tl_kernel.py \
   --op-name LogSumExpFwdOp \
-  --gpu-repo-root /home/tilelang/zuochuanuong/TileOPs-fork \
-  --out tileops/kernels/reduction/logsumexp
+  --gpu-repo-root /home/zuo/code/TileOPs \
+  --out src/tileops/_kernels/reduction/logsumexp
 ```
 
 the script auto-generates the filename and prints
-`[ok] wrote tileops/kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py`.
+`[ok] wrote src/tileops/_kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py`.
 The script extracts `_logsumexp_kernel_single` and
 `_logsumexp_kernel_tiled`. Two prompts are emitted — one per kernel
 function, both referencing the same extracted file:
@@ -743,9 +753,9 @@ function, both referencing the same extracted file:
 **Prompt 1** (for `_logsumexp_kernel_single`):
 
 ```
-迁移 logsumexp 算子 LogSumExpFwdOp。 其 TileLang 实现函数 _logsumexp_kernel_single 在 tileops/kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py。
+迁移 logsumexp 算子 LogSumExpFwdOp。 其 TileLang 实现函数 _logsumexp_kernel_single 在 src/tileops/_kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py。
 _logsumexp_kernel_single 是对外接口，不要改变接口的参数(除非该参数跟后端实现相关，在迁移时需要适配)。
-LogSumExpFwdOp 的规格见 examples/TileOPs/tileops/manifest/reduction.yaml中 LogSumExpFwdOp 的 workloads 部分。
+LogSumExpFwdOp 的规格见 examples/TileOPs/src/tileops/manifest/spec/reduction.yaml中 LogSumExpFwdOp 的 workloads 部分。
 精度用例见 examples/TileOPs/tests/ops/test_softmax.py，
 性能用例见 examples/TileOPs/benchmarks/ops/bench_softmax.py
 编程模式由 Stage 1 设计裁定（默认 simt，auto_schedule yes）；kernel 模块 docstring 须声明 programming_mode: simt|simd|mixed。
@@ -754,9 +764,9 @@ LogSumExpFwdOp 的规格见 examples/TileOPs/tileops/manifest/reduction.yaml中 
 **Prompt 2** (for `_logsumexp_kernel_tiled`):
 
 ```
-迁移 logsumexp 算子 LogSumExpFwdOp。 其 TileLang 实现函数 _logsumexp_kernel_tiled 在 tileops/kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py。
+迁移 logsumexp 算子 LogSumExpFwdOp。 其 TileLang 实现函数 _logsumexp_kernel_tiled 在 src/tileops/_kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py。
 _logsumexp_kernel_tiled 是对外接口，不要改变接口的参数(除非该参数跟后端实现相关，在迁移时需要适配)。
-LogSumExpFwdOp 的规格见 examples/TileOPs/tileops/manifest/reduction.yaml中 LogSumExpFwdOp 的 workloads 部分。
+LogSumExpFwdOp 的规格见 examples/TileOPs/src/tileops/manifest/spec/reduction.yaml中 LogSumExpFwdOp 的 workloads 部分。
 精度用例见 examples/TileOPs/tests/ops/test_softmax.py，
 性能用例见 examples/TileOPs/benchmarks/ops/bench_softmax.py
 编程模式由 Stage 1 设计裁定（默认 simt，auto_schedule yes）；kernel 模块 docstring 须声明 programming_mode: simt|simd|mixed。
@@ -773,7 +783,7 @@ created:
    all extracted functions.
 3. The number of emitted prompts equals the number of TileLang kernel
    functions reported by the extraction script.
-4. `examples/TileOPs/tileops/manifest/{family}.yaml` contains a
+4. `examples/TileOPs/src/tileops/manifest/spec/{family}.yaml` contains a
    `{op_name}:` key with a `workloads:` section.
 5. `examples/TileOPs/tests/ops/test_{test_slug}.py` exists.
 6. `examples/TileOPs/benchmarks/ops/bench_{bench_slug}.py` exists.
@@ -789,11 +799,16 @@ mode changes only the **output bookkeeping** — all Phases 0-S7 (including
 Tier 1 and the helper completeness check) run unchanged, and the per-kernel
 prompts are still emitted as the final messages.
 
+For the current src source, run extraction with `--source-info-out <discovery.json>`
+and complete the provenance and conversion fields required by the shared
+`migration-source.md` contract. The discovery sidecar is not a complete meta
+and must not be passed directly to gate 0 or the integrator.
+
 After Tier 1 and the helper completeness check pass, **write the migration
 metadata file** (in addition to emitting the prompts):
 
 ```
-tileops/kernels/{family}/{op_slug}/.migration_meta.json
+src/tileops/_kernels/{family}/{op_slug}/.migration_meta.json
 ```
 
 Schema (all fields required unless noted; consumed by
@@ -811,8 +826,8 @@ Schema (all fields required unless noted; consumed by
   "test_slug": "<test slug>",
   "bench_path": "benchmarks/ops/bench_{bench_slug}.py",
   "bench_slug": "<bench slug>",
-  "wrapper_path": "tileops/kernels/{family}/{op_slug}/{op_slug}.py",
-  "extracted_file": "tileops/kernels/{family}/{op_slug}/{extracted_file_name}",
+  "wrapper_path": "src/tileops/_kernels/{family}/{op_slug}/{op_slug}.py",
+  "extracted_file": "src/tileops/_kernels/{family}/{op_slug}/{extracted_file_name}",
   "extracted_functions": ["<function names reported by the extraction script>"],
   "created_at": "<ISO 8601 UTC>"
 }
@@ -820,7 +835,7 @@ Schema (all fields required unless noted; consumed by
 
 Rules:
 
-- Paths are relative to the A5 project root (`examples/TileOPs/`).
+- All existing path fields are relative to the A5 project root (`examples/TileOPs/`). Optional `gpu_source` paths are relative to `gpu_repo_root`; see the adapter. Never substitute source paths for target paths.
 - `extracted_functions` is exactly the function list printed by the
   extraction script in S3 Part A.
 - The meta file is overwritten on each (idempotent) re-run.

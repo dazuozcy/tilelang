@@ -23,3 +23,4 @@
 | [hardware-cost-model.md](hardware-cost-model.md) | 设计期硬件成本模型与 roofline 估算协议（D-2：R4/§1.6.3 估算下界公式、Stage 4 偏差回填；常数值表唯一事实源在 pattern-library/constants.md） | designer、reviewer、tilelang-op-design skill、tilelang-op-optimize skill |
 | [final-report-template.md](final-report-template.md) | 任务最终输出报告模板 | conductor（终态输出）、README |
 | [backend-glossary.md](backend-glossary.md) | 后端词汇映射单一事实源（旧后端→ascend 概念映射、编程模式枚举速查、禁用词清单、文档锚点速查）——未来第三后端适配的对照基准 | 所有 conductor agents/skills、gate_lint（禁用词检查）、README |
+| [migration-source.md](migration-source.md) | TileOPs 源布局、逐函数元数据和跨阶段输入、无设备验证边界 | conductor、Stage 0–5、各 operator skills、gate_lint |

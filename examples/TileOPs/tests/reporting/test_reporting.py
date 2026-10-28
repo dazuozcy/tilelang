@@ -1,14 +1,17 @@
 import json
 from pathlib import Path
 
-from tileops.benchmark.benchmark_base import (
+from tileops._perf.benchmark_base import (
     BenchmarkBase,
     BenchmarkReport,
     _bench_with_mode,
 )
-from tileops.benchmark.msprof import MSPROF_RESULT_METADATA, bench_kernel_msprof
-from tileops.benchmark.msprof import profile_kernel_msprof_detail
-from tileops.benchmark.msprof_roofline import (
+from tileops._perf.msprof import (
+    MSPROF_RESULT_METADATA,
+    bench_kernel_msprof,
+    profile_kernel_msprof_detail,
+)
+from tileops._perf.msprof_roofline import (
     DATA_TYPE_BASE_INFO,
     DATA_TYPE_ROOFLINE,
     parse_bin_blocks,
@@ -75,7 +78,7 @@ def test_bench_kernel_msprof_wraps_functor_with_partial(monkeypatch):
         functor_calls.append((a, b, c))
         return a + b + c
 
-    monkeypatch.setattr("tileops.benchmark.msprof.do_bench", fake_do_bench)
+    monkeypatch.setattr("tileops._perf.msprof.do_bench", fake_do_bench)
 
     latency_ms, prof_output_dir = bench_kernel_msprof(functor, (1, 2, 3))
 
@@ -99,7 +102,7 @@ def test_bench_kernel_msprof_uses_bare_functor_without_args(monkeypatch):
     def functor():
         return "ok"
 
-    monkeypatch.setattr("tileops.benchmark.msprof.do_bench", fake_do_bench)
+    monkeypatch.setattr("tileops._perf.msprof.do_bench", fake_do_bench)
 
     latency_ms, prof_output_dir = bench_kernel_msprof(functor)
 
@@ -116,7 +119,7 @@ def test_bench_kernel_msprof_maps_launch_env_to_do_bench(monkeypatch):
         captured.update(kwargs)
         return 0.0
 
-    monkeypatch.setattr("tileops.benchmark.msprof.do_bench", fake_do_bench)
+    monkeypatch.setattr("tileops._perf.msprof.do_bench", fake_do_bench)
     monkeypatch.setenv("TILEOPS_MSPROF_WARM_UP", "3")
     monkeypatch.setenv("TILEOPS_MSPROF_LAUNCH_COUNT", "7")
 
@@ -136,7 +139,7 @@ def test_bench_kernel_msprof_env_defaults_are_auto(monkeypatch):
 
     monkeypatch.delenv("TILEOPS_MSPROF_WARM_UP", raising=False)
     monkeypatch.delenv("TILEOPS_MSPROF_LAUNCH_COUNT", raising=False)
-    monkeypatch.setattr("tileops.benchmark.msprof.do_bench", fake_do_bench)
+    monkeypatch.setattr("tileops._perf.msprof.do_bench", fake_do_bench)
 
     bench_kernel_msprof(lambda: None)
 
@@ -151,7 +154,7 @@ def test_bench_kernel_msprof_env_rejects_garbage_integers(monkeypatch):
         captured.update(kwargs)
         return 0.0
 
-    monkeypatch.setattr("tileops.benchmark.msprof.do_bench", fake_do_bench)
+    monkeypatch.setattr("tileops._perf.msprof.do_bench", fake_do_bench)
     monkeypatch.setenv("TILEOPS_MSPROF_WARM_UP", "not-a-number")
 
     bench_kernel_msprof(lambda: None)
@@ -166,12 +169,12 @@ def test_bench_kernel_msprof_logs_and_ignores_deprecated_env(monkeypatch, caplog
         captured.update(kwargs)
         return 0.0
 
-    monkeypatch.setattr("tileops.benchmark.msprof.do_bench", fake_do_bench)
+    monkeypatch.setattr("tileops._perf.msprof.do_bench", fake_do_bench)
     monkeypatch.setenv("TILEOPS_MSPROF_KERNEL_NAME", "some_kernel")
     monkeypatch.setenv("TILEOPS_MSPROF_OUTPUT_DIR", "/tmp/obsolete")
     monkeypatch.setenv("TILEOPS_MSPROF_KEEP_OUTPUT", "1")
 
-    with caplog.at_level("WARNING", logger="tileops.benchmark.msprof"):
+    with caplog.at_level("WARNING", logger="tileops._perf.msprof"):
         latency_ms, prof_output_dir = bench_kernel_msprof(lambda: None)
 
     assert latency_ms == 0.0
@@ -206,7 +209,7 @@ def test_bench_kernel_msprof_forwards_do_bench_failure(monkeypatch):
     def failing_do_bench(fn, **kwargs):
         raise RuntimeError("msprof unavailable")
 
-    monkeypatch.setattr("tileops.benchmark.msprof.do_bench", failing_do_bench)
+    monkeypatch.setattr("tileops._perf.msprof.do_bench", failing_do_bench)
 
     try:
         bench_kernel_msprof(lambda: None)
@@ -241,12 +244,12 @@ def _fake_detail(ratio: float = 0.87, pipe: str = "aiv_vec"):
 
 def test_profile_attaches_msprof_roofline_ratio(monkeypatch):
     monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.bench_kernel_msprof",
+        "tileops._perf.benchmark_base.bench_kernel_msprof",
         lambda functor, args=(): (0.5, None),
     )
     monkeypatch.delenv("TILEOPS_MSPROF_ROOFLINE", raising=False)
     monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.collect_roofline_msprof",
+        "tileops._perf.benchmark_base.collect_roofline_msprof",
         lambda functor, args=(), **kw: _fake_roofline(),
     )
 
@@ -274,7 +277,7 @@ def test_profile_attaches_msprof_roofline_ratio(monkeypatch):
 
 def test_profile_roofline_unsupported_functor_falls_back_to_pipe(monkeypatch):
     monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.bench_kernel_msprof",
+        "tileops._perf.benchmark_base.bench_kernel_msprof",
         lambda functor, args=(): (0.5, None),
     )
     monkeypatch.delenv("TILEOPS_MSPROF_ROOFLINE", raising=False)
@@ -283,11 +286,9 @@ def test_profile_roofline_unsupported_functor_falls_back_to_pipe(monkeypatch):
     def _raise_type_error(functor, args=(), **kw):
         raise TypeError("closure not supported")
 
+    monkeypatch.setattr("tileops._perf.benchmark_base.collect_roofline_msprof", _raise_type_error)
     monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.collect_roofline_msprof", _raise_type_error
-    )
-    monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.profile_kernel_msprof_detail",
+        "tileops._perf.benchmark_base.profile_kernel_msprof_detail",
         lambda functor, args=(): _fake_detail(),
     )
 
@@ -309,17 +310,17 @@ def test_profile_roofline_unsupported_functor_falls_back_to_pipe(monkeypatch):
 
 def test_profile_roofline_none_falls_back_to_pipe(monkeypatch):
     monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.bench_kernel_msprof",
+        "tileops._perf.benchmark_base.bench_kernel_msprof",
         lambda functor, args=(): (0.5, None),
     )
     monkeypatch.delenv("TILEOPS_MSPROF_ROOFLINE", raising=False)
     monkeypatch.delenv("TILEOPS_MSPROF_DETAIL", raising=False)
     monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.collect_roofline_msprof",
+        "tileops._perf.benchmark_base.collect_roofline_msprof",
         lambda functor, args=(), **kw: None,
     )
     monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.profile_kernel_msprof_detail",
+        "tileops._perf.benchmark_base.profile_kernel_msprof_detail",
         lambda functor, args=(): _fake_detail(0.51, "aiv_mte2"),
     )
 
@@ -340,7 +341,7 @@ def test_profile_roofline_none_falls_back_to_pipe(monkeypatch):
 
 def test_profile_both_metric_passes_can_be_disabled(monkeypatch):
     monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.bench_kernel_msprof",
+        "tileops._perf.benchmark_base.bench_kernel_msprof",
         lambda functor, args=(): (0.5, None),
     )
     monkeypatch.setenv("TILEOPS_MSPROF_ROOFLINE", "0")
@@ -349,12 +350,8 @@ def test_profile_both_metric_passes_can_be_disabled(monkeypatch):
     def _fail(functor, args=(), **kw):
         raise AssertionError("metric passes must not run when disabled")
 
-    monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.collect_roofline_msprof", _fail
-    )
-    monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.profile_kernel_msprof_detail", _fail
-    )
+    monkeypatch.setattr("tileops._perf.benchmark_base.collect_roofline_msprof", _fail)
+    monkeypatch.setattr("tileops._perf.benchmark_base.profile_kernel_msprof_detail", _fail)
 
     class DemoBenchmark(BenchmarkBase):
         def calculate_flops(self):
@@ -396,7 +393,7 @@ def test_profile_kernel_msprof_detail_selects_bottleneck_pipe(monkeypatch):
         captured["fn"] = fn
         return _FakeProfile()
 
-    monkeypatch.setattr("tileops.benchmark.msprof.do_bench", fake_do_bench)
+    monkeypatch.setattr("tileops._perf.msprof.do_bench", fake_do_bench)
     monkeypatch.setenv("TILEOPS_MSPROF_DETAIL_REPEAT", "9")
 
     detail = profile_kernel_msprof_detail(lambda a, b: None, (1, 2))
@@ -412,9 +409,7 @@ def test_profile_kernel_msprof_detail_selects_bottleneck_pipe(monkeypatch):
 
 
 def test_profile_events_mode_has_no_msprof_metadata(monkeypatch):
-    monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.bench_kernel", lambda functor, args=(): 0.2
-    )
+    monkeypatch.setattr("tileops._perf.benchmark_base.bench_kernel", lambda functor, args=(): 0.2)
 
     class DemoBenchmark(BenchmarkBase):
         def calculate_flops(self):
@@ -435,12 +430,8 @@ def test_bench_with_mode_falls_back_to_events_and_is_visible(monkeypatch):
     def failing_msprof(functor, args=()):
         raise RuntimeError("msprof failed")
 
-    monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.bench_kernel_msprof", failing_msprof
-    )
-    monkeypatch.setattr(
-        "tileops.benchmark.benchmark_base.bench_kernel", lambda functor, args=(): 0.1
-    )
+    monkeypatch.setattr("tileops._perf.benchmark_base.bench_kernel_msprof", failing_msprof)
+    monkeypatch.setattr("tileops._perf.benchmark_base.bench_kernel", lambda functor, args=(): 0.1)
 
     latency, prof_mode = _bench_with_mode(lambda: None, mode="msprof")
 
@@ -1165,7 +1156,7 @@ def test_parse_session_timing_validates_operator_and_values(tmp_path):
 def test_session_timing_auto_discovery_supports_multi_operator_reports(tmp_path):
     root = tmp_path / "TileOPs"
     root.mkdir()
-    metadata = root / "tileops" / "kernels" / "demo" / "alpha" / ".migration_meta.json"
+    metadata = root / "src" / "tileops" / "_kernels" / "demo" / "alpha" / ".migration_meta.json"
     metadata.parent.mkdir(parents=True)
     metadata.write_text(
         json.dumps({"op_name": "AlphaOp", "op_slug": "alpha_task"}), encoding="utf-8"
@@ -1175,8 +1166,8 @@ def test_session_timing_auto_discovery_supports_multi_operator_reports(tmp_path)
         "operators": [{"operator": "AlphaOp"}, {"operator": "BetaOp"}],
     }
     catalog = [
-        {"name": "AlphaOp", "kernel": "tileops/kernels/demo/wrong/wrong.py"},
-        {"name": "BetaOp", "kernel": "tileops/kernels/demo/beta/beta.py"},
+        {"name": "AlphaOp", "kernel": "src/tileops/_kernels/demo/wrong/wrong.py"},
+        {"name": "BetaOp", "kernel": "src/tileops/_kernels/demo/beta/beta.py"},
     ]
 
     attach_session_timing(run, root=root, operator_catalog=catalog, enabled=True)
@@ -1371,7 +1362,12 @@ def _write_bin(path, duration_us: float, ratio: float) -> None:
     import json as _json
 
     base = _json.dumps(
-        {"duration": duration_us, "cur_freq": "1650", "soc": "Ascend950PR_9579", "op_type": "vector"}
+        {
+            "duration": duration_us,
+            "cur_freq": "1650",
+            "soc": "Ascend950PR_9579",
+            "op_type": "vector",
+        }
     ).encode("utf-8")
     blob = _pack_bin_block(DATA_TYPE_BASE_INFO, base, padding=1) + _pack_bin_block(
         DATA_TYPE_ROOFLINE, _roofline_payload(ratio), padding=2
@@ -1408,7 +1404,6 @@ def test_parse_bin_blocks_handles_padding_and_termination(tmp_path):
 
 
 def _make_op_tree(root, op_name: str, launches: int, duration_us: float, ratio: float):
-    import os as _os
 
     op_dir = root / op_name
     for i in range(launches):
@@ -1418,7 +1413,7 @@ def _make_op_tree(root, op_name: str, launches: int, duration_us: float, ratio: 
 
 
 def test_select_roofline_entry_matches_duration(tmp_path, monkeypatch):
-    from tileops.benchmark.msprof_roofline import _select_roofline_entry
+    from tileops._perf.msprof_roofline import _select_roofline_entry
 
     # Two captured ops: an auxiliary ACL kernel (long, low ratio) and the op
     # under test (~100us, ratio 0.78).  Duration matching must pick the latter.
@@ -1441,6 +1436,6 @@ def test_select_roofline_entry_matches_duration(tmp_path, monkeypatch):
 
 
 def test_select_roofline_entry_no_bin_returns_none(tmp_path):
-    from tileops.benchmark.msprof_roofline import _select_roofline_entry
+    from tileops._perf.msprof_roofline import _select_roofline_entry
 
     assert _select_roofline_entry(str(tmp_path)) is None

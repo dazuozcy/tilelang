@@ -1,0 +1,26 @@
+{
+  "op_name": "LogSumExpFwdOp",
+  "op_slug": "logsumexp",
+  "family": "reduction",
+  "gpu_repo_root": "/home/zuo/code/TileOPs",
+  "kernel_class_name": "LogSumExpKernel",
+  "op_class_name": "LogSumExpFwdOp",
+  "test_path": "tests/ops/test_softmax.py",
+  "test_slug": "softmax",
+  "bench_path": "benchmarks/ops/bench_softmax.py",
+  "bench_slug": "softmax",
+  "wrapper_path": "src/tileops/_kernels/reduction/logsumexp/logsumexp.py",
+  "extracted_file": "src/tileops/_kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py",
+  "extracted_functions": [
+    "_logsumexp_kernel_single",
+    "_logsumexp_kernel_tiled"
+  ],
+  "created_at": "2026-10-16T08:49:14Z",
+  "historical_source": {
+    "gpu_repo_root": "/home/z00875089/TileOPs-fork",
+    "created_at": "2026-10-16T08:49:14Z"
+  },
+  "source_layout": "src",
+  "refresh_status": "requires_rescaffold",
+  "refresh_reason": "Directory paths refreshed; original kernels have not been revalidated against current TileOPs source."
+}

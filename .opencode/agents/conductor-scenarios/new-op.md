@@ -75,7 +75,8 @@ op_requirements:
   programming_mode: simt | simd | mixed   # 用户回答后归一化（signal-registry.md §3）：simt=SimtVF 线程域（默认推荐）/ simd=SimdVF 显式 2048-bit 向量（性能热点）/ mixed=MixedKernel Cube+Vector
   auto_schedule: yes | no                 # 正交字段，默认 yes；no 时 DESIGN.md 必须写明手动同步方案（set_flag/wait_flag 配对），reviewer 增设检视点
   # ⬇ 迁移任务必填（scenario=migration，字段语义见 conductor-scenarios/migration.md）
-  source_op_path: <源算子文件路径；plain=用户给出，harness=.migration_meta.json 中该函数的 GPU 源码路径>
+  source_context: <仅 harness：按 migration-source.md 组装的完整来源上下文>
+  source_op_path: <源算子文件路径；plain=用户给出，harness=按 migration-source.md 解析 gpu_source.function_sources>
   source_output_shape: <源算子输出 shape，如 (M, N)；无法从源码推断时由 designer 解读后回填并标注依据>
 ```
 

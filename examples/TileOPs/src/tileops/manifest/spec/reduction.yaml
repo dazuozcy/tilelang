@@ -1,0 +1,172 @@
+# reduction.yaml -- manifest registry for the 'reduction' family (Ascend A5).
+#
+# Empty registry: 910B operator entries are deliberately not ported; A5
+# entries are added per-op by tilelang-op-conductor (add-ascend-op flow).
+#
+# Entry schema (top-level key = op_name):
+#
+#   <OpClassName>:
+#     ref_api: "torch reference API"          # PyTorch reference implementation
+#     family: <family>                       # operator family (directory name)
+#     status: implemented                     # registry lifecycle status
+#     torch_compile_fullgraph: true           # optional: dynamo traceability flag
+#     variant_of: <OpClassName>               # optional: variant-of relation
+#     signature:                              # op I/O contract
+#       inputs:  {<name>: {dtype: "<dtype expr | union>"}}
+#       outputs: {<name>: {dtype: "<dtype expr | same_as(input)>"}}
+#       params:  {<name>: {type: <py-type>, default: <value>}}
+#       shape_rules:                          # optional: shape invariant list
+#         - "<rule expr>"
+#     workloads:                              # benchmark/correctness shapes
+#       - {<input>_shape: [...], dtypes: [...], label: "<name>"}
+#     roofline:                               # analytic cost model
+#       vars: {<var>: "<python expr over shapes>"}
+#       flops: "<python expr>"
+#       bytes: "<python expr>"
+#     source:                                 # generated-code locations
+#       kernel: src/tileops/_kernels/<family>/<op>/<op>.py
+#       kernel_map: {<key>: <KernelClassName>}
+#       op: src/tileops/_ops/<family>/<op>.py
+#       test: tests/ops/test_<op>.py
+#       bench: benchmarks/ops/bench_<op>.py
+#       bench_manifest_driven: true
+#
+# Example entry (commented out; from the source repository's elementwise
+# registry, kept here as a schema reference only -- it is NOT registered):
+#
+# MishFwdOp:
+#   ref_api: "torch.nn.functional.mish"
+#   family: elementwise
+#   status: implemented
+#
+#   torch_compile_fullgraph: true
+#   signature:
+#     inputs:
+#       input: {dtype: "float16 | bfloat16 | float32"}
+#     outputs:
+#       output: {dtype: "same_as(input)"}
+#     params:
+#       inplace: {type: bool, default: false}
+#     shape_rules:
+#       - "output.shape == input.shape"
+#
+#   workloads:
+#     - {input_shape: [1048576], dtypes: [float32, float16, bfloat16], label: "smoke-1m"}
+#     - {input_shape: [16, 256, 80, 80], dtypes: [float16, bfloat16], label: "yolo-p3"}
+#
+#   roofline:
+#     vars:
+#       N: "product(input.shape)"
+#     flops: "4 * N"
+#     bytes: "2 * N * elem_bytes"
+#
+#   source:
+#     kernel: src/tileops/_kernels/elementwise/mish/mish.py
+#     kernel_map:
+#       mish: MishFwdKernel
+#     op: src/tileops/_ops/elementwise/mish.py
+#     test: tests/ops/test_mish.py
+#     bench: benchmarks/ops/bench_mish.py
+#     bench_manifest_driven: true
+
+LogSumExpFwdOp:
+  ref_api: "torch.logsumexp"
+  family: reduction
+  status: implemented
+
+  signature:
+    inputs:
+      x: {dtype: "float16 | bfloat16"}
+    outputs:
+      output: {dtype: "same_as(x)"}
+    params:
+      dim: {type: "int | list[int] | tuple[int, ...]", default: -1}
+      keepdim: {type: bool, default: false}
+    shape_rules:
+    - "all(-x.ndim <= d < x.ndim for d in ([dim] if isinstance(dim, int) else dim))"
+    - "isinstance(dim, int) or len(dim) > 0"
+    - "isinstance(dim, int) or len({d % x.ndim for d in dim}) == len(dim)"
+    - "output.ndim == (x.ndim if keepdim else x.ndim - (1 if isinstance(dim, int) else len({d % x.ndim for d in dim})))"
+    - "not keepdim or all(output.shape[i] == (1 if i in ({dim % x.ndim} if isinstance(dim, int) else {d % x.ndim for d in dim}) else x.shape[i]) for i in range(x.ndim))"
+    - "keepdim or all(output.shape[k] == x.shape[[i for i in range(x.ndim) if i not in ({dim % x.ndim} if isinstance(dim, int) else {d % x.ndim for d in dim})][k]] for k in range(output.ndim))"
+
+  workloads:
+    # Attention weight matrices
+  - {x_shape: [32, 32, 4096], dtypes: [float16, bfloat16], label: "attn-weights-4k"}
+  - {x_shape: [32, 32, 32768], dtypes: [bfloat16], label: "attn-weights-32k"}
+    # LM head logits
+  - {x_shape: [4, 102400], dtypes: [float16, bfloat16], label: "lm-head-logits"}
+  - {x_shape: [4, 128, 4096], dtypes: [float16], dim: [0, 2], label: "3d-multidim-reduce"}
+
+  roofline:
+    vars:
+      M: "product(x.shape[i] for i in range(x.ndim) if i not in ({dim % x.ndim} if isinstance(dim, int) else {d % x.ndim for d in dim}))"
+      N: "product(x.shape[i] for i in ({dim % x.ndim} if isinstance(dim, int) else {d % x.ndim for d in dim}))"
+    # Per row: max (N) + sub (N) + exp (N) + sum (N) + log+add (≈1) ≈ 4N,
+    # matching SoftmaxFwdOp's convention where max and the broadcast sub each
+    # cost N. FLOP convention: 1 cmp+sel = 1 fp op.
+    flops: "4 * M * N"
+    # Read x (M*N) + write output (M)
+    bytes: "(M * N + M) * elem_bytes"
+
+  source:
+    kernel: src/tileops/_kernels/reduction/logsumexp/logsumexp.py
+    kernel_map:
+      logsumexp_fwd: LogSumExpKernel
+    op: src/tileops/_ops/reduction/logsumexp.py
+    test: tests/ops/test_softmax.py
+    bench: benchmarks/ops/bench_softmax.py
+    bench_manifest_driven: true
+
+# SIMD-mode variant (SimdVF, explicit 2048-bit T.simd.* intrinsics) of
+# LogSumExpFwdOp — independent operator, ported from the same GPU source
+# entry (signature/roofline/workloads preserved verbatim).
+LogSumExpFwdOpSimd:
+  ref_api: "torch.logsumexp"
+  family: reduction
+  status: implemented
+  variant_of: LogSumExpFwdOp
+
+  signature:
+    inputs:
+      x: {dtype: "float16 | bfloat16"}
+    outputs:
+      output: {dtype: "same_as(x)"}
+    params:
+      dim: {type: "int | list[int] | tuple[int, ...]", default: -1}
+      keepdim: {type: bool, default: false}
+    shape_rules:
+    - "all(-x.ndim <= d < x.ndim for d in ([dim] if isinstance(dim, int) else dim))"
+    - "isinstance(dim, int) or len(dim) > 0"
+    - "isinstance(dim, int) or len({d % x.ndim for d in dim}) == len(dim)"
+    - "output.ndim == (x.ndim if keepdim else x.ndim - (1 if isinstance(dim, int) else len({d % x.ndim for d in dim})))"
+    - "not keepdim or all(output.shape[i] == (1 if i in ({dim % x.ndim} if isinstance(dim, int) else {d % x.ndim for d in dim}) else x.shape[i]) for i in range(x.ndim))"
+    - "keepdim or all(output.shape[k] == x.shape[[i for i in range(x.ndim) if i not in ({dim % x.ndim} if isinstance(dim, int) else {d % x.ndim for d in dim})][k]] for k in range(output.ndim))"
+
+  workloads:
+    # Attention weight matrices
+  - {x_shape: [32, 32, 4096], dtypes: [float16, bfloat16], label: "attn-weights-4k"}
+  - {x_shape: [32, 32, 32768], dtypes: [bfloat16], label: "attn-weights-32k"}
+    # LM head logits
+  - {x_shape: [4, 102400], dtypes: [float16, bfloat16], label: "lm-head-logits"}
+  - {x_shape: [4, 128, 4096], dtypes: [float16], dim: [0, 2], label: "3d-multidim-reduce"}
+
+  roofline:
+    vars:
+      M: "product(x.shape[i] for i in range(x.ndim) if i not in ({dim % x.ndim} if isinstance(dim, int) else {d % x.ndim for d in dim}))"
+      N: "product(x.shape[i] for i in ({dim % x.ndim} if isinstance(dim, int) else {d % x.ndim for d in dim}))"
+    # Per row: max (N) + sub (N) + exp (N) + sum (N) + log+add (≈1) ≈ 4N,
+    # matching SoftmaxFwdOp's convention where max and the broadcast sub each
+    # cost N. FLOP convention: 1 cmp+sel = 1 fp op.
+    flops: "4 * M * N"
+    # Read x (M*N) + write output (M)
+    bytes: "(M * N + M) * elem_bytes"
+
+  source:
+    kernel: src/tileops/_kernels/reduction/logsumexp_simd/logsumexp_simd.py
+    kernel_map:
+      logsumexp_fwd: LogSumExpSimdKernel
+    op: src/tileops/_ops/reduction/logsumexp_simd.py
+    test: tests/ops/test_logsumexp_simd.py
+    bench: benchmarks/ops/bench_logsumexp_simd.py
+    bench_manifest_driven: true

@@ -45,24 +45,24 @@ model: gateway/deepseek-v4-pro
 | scenario | 识别信号 | 硬性前置校验 |
 |----------|---------|-------------|
 | `migration` | 用户消息含"迁移 / migrate / migration"+ 给出 GPU 实现来源（repo 路径 / 文件 / 链接） | `gpu_repo_root` 存在且可读；迁移目标算子名明确（manifest 键或 `@tilelang.jit` 函数名） |
-| `optimize` | 用户指向**已存在**的算子产物（`examples/{project}/{op}/{op}.py` 或 `examples/TileOPs/tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/`）+ 优化诉求（调优 / 性能 / optimize / 提速） | kernel 文件确实存在；能定位回归测试入口（内嵌分层测试或 TileOPs pytest） |
+| `optimize` | 用户指向**已存在**的算子产物（`examples/{project}/{op}/{op}.py` 或 `examples/TileOPs/src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/`）+ 优化诉求（调优 / 性能 / optimize / 提速） | kernel 文件确实存在；能定位回归测试入口（内嵌分层测试或 TileOPs pytest） |
 | `new_op`（默认） | 不匹配上述两条 | 5 字段完备性预检（new-op.md §3） |
 
 识别冲突或模糊（如"优化并迁移 X"）→ 用 AskUserQuestion 让用户三选一，不得默认。
 
 ### migration 子模式探测（harness / plain）
 
-判定为 `migration` 后，检测 GPU 仓是否为 TileOPs 同构工程（决定是否启用 Stage 0/5）：
+判定为 `migration` 后，检测 GPU 仓是否为可适配的 TileOPs 工程（当前源仓 `/home/zuo/code/TileOPs`，仅支持 `src/tileops`；决定是否启用 Stage 0/5）：
 
 ```bash
 # harness 判定（全部满足才是 harness）
-test -d {gpu_repo_root}/tileops/manifest \
-  && test -d {gpu_repo_root}/tests/ops \
-  && test -d {gpu_repo_root}/benchmarks/ops \
-  && grep -rl "^{op_name}:" {gpu_repo_root}/tileops/manifest/*.yaml && test -d examples/TileOPs/tileops && test -f examples/TileOPs/.agents/skills/add-ascend-op/SKILL.md
+python3 examples/TileOPs/.agents/skills/add-ascend-op/scripts/extract_tl_kernel.py \
+  --gpu-repo-root {gpu_repo_root} --op-name {op_name} --inspect \
+  && test -d {gpu_repo_root}/tests/ops && test -d {gpu_repo_root}/benchmarks/ops \
+  && test -d examples/TileOPs/src/tileops && test -f examples/TileOPs/.agents/skills/add-ascend-op/SKILL.md
 ```
 
-- 全满足（GPU 仓同构 + 本仓 TileOPs 框架在位）→ `migration_mode=harness`；任一不满足 → `migration_mode=plain`（plain 子模式规则在 migration.md §6）。探测结果不确定（如 op_name 解析不出）→ Primary 上下文问用户一次："GPU 仓是否为 TileOPs 同构工程（含 manifest/tests/benchmarks）？是否需要集成进本仓 Ascend A5 TileOPs 工程（`examples/TileOPs/`）？"
+- 全满足（GPU 仓规格和实现可定位 + 本仓 TileOPs 框架在位）→ `migration_mode=harness`；普通非 TileOPs 源仓 → `migration_mode=plain`（plain 子模式规则在 migration.md §6）。已识别 TileOPs 但 inspect 失败时须披露错误，不得静默回落 plain；探测结果不确定（如 op_name 解析不出）→ Primary 上下文问用户一次："GPU 仓是否为 TileOPs 同构工程（含 manifest/tests/benchmarks）？是否需要集成进本仓 Ascend A5 TileOPs 工程（`examples/TileOPs/`）？"
 
 ### 场景文件加载 ⭐
 
@@ -109,14 +109,14 @@ test -d {gpu_repo_root}/tileops/manifest \
 
 ### Stage 1 — 算子设计（`@tilelang-op-designer`）
 
-- **触发**：任务启动（`mode=first_design`）；或设计修订（`mode=revision`，附 `last_design_path` / `design_error_summary` / `revision_index` / `previous_revisions`；迁移任务另传 `source_op_path`）。
+- **触发**：任务启动（`mode=first_design`）；或设计修订（`mode=revision`，附 `last_design_path` / `design_error_summary` / `revision_index` / `previous_revisions`；迁移任务另传 `source_op_path`（harness 按 `migration-source.md` 同传 `source_context`））。
 - **输入**：`op_requirements` 结构（预检后由你传入，格式见 new-op.md §4）+ `project_name` / `op_name`；调度 prompt 须引用共享标准（先 Read 后执行）：`core-split-strategy.md` §2.1（分核设计）、`algorithm-research.md` §1（调研四问）、`negative-claim-evidence.md` §1（弃选论证举证）。**调度前按「知识预注入」执行 kb_search 并附 top-K 条目**（designer 侧步骤 0.5 仍保留——预注入是结构保障，步骤 0.5 是深读纪律）。
 - **输出/信号**：`DESIGN.md`（含 §1.6 算法调研与优化分析——**§1.6.0 含设计期估算下界行（D-2 roofline，常数引用 pattern-library/constants.md）**、§1.6.1 含 verify_equiv.py 等价性机器验证结果表（D-1，无优化空间结论豁免）、§5 分核三要素；迁移另含 §0）+ `verify_equiv.py`（含采纳优化项时）+ `DESIGN_COMPLETED`。完整校验标准权威：`gate-and-retry.md` §1 Stage 1 行 + `statectl gate 1`。
 
 ### Stage 2 — 设计检视（`@tilelang-design-reviewer`）
 
 - **触发**：收到 `DESIGN_COMPLETED` 后（调度前先跑 `statectl gate 1` 前置，机械失败直接走门禁失败流程，不浪费检视调度）。
-- **输入**：`design_md_path`、`project_name`、`op_name`；迁移任务另传 `source_op_path`（维度 0 须亲自读源码核对）。
+- **输入**：`design_md_path`、`project_name`、`op_name`；迁移任务另传 `source_op_path`（harness 按 `migration-source.md` 同传 `source_context`）（维度 0 须亲自读源码核对）。
 - **输出/信号**：`REVIEW.md`（`结论: 通过` / `结论: 不通过` 字面量 + **「机械复核」段**（D-1/D-5：verify_equiv.py 重跑结果 + design_calc_check.py JSON 摘要）+ 不通过时具体修改建议；迁移 9 维度含维度 0，非迁移 8 维度，均含维度 8 独立复核）+ `REVIEW_COMPLETED`。编排层动作：通过 → `complete_stage(2)` → Stage 3；不通过 → 设计修订循环（路径 A）。
 
 ### Stage 3 — 算子开发（`@tilelang-op-developer`）
@@ -191,7 +191,7 @@ examples/{project}/{op}/                        # standalone / plain / optimize 
 
 1. 识别触发路径（A / B / C），提取 `design_error_summary`；备份当前 design：`cp DESIGN.md history_version/design_v{retry_count}.md`。
 2. `statectl fail <当前 stage> --dir ... --reason design_revision` —— 工具自动：置 `stage_status=failed`、`retry_count += 1`、置 `last_failure_reason=design_revision`、**清空下游 Stage 状态与重试计数**；若 `retry_count >= max_retry` 直接置 `phase=FAILED`、`failure_reason=BLOCKED_DESIGN`。
-3. 预算未超限 → `statectl start 1 --dir ...`（一次性修订通行证重入）→ 重新调度 designer（`mode=revision`），prompt 传入 `last_design_path` / `design_error_summary` / `revision_index` / `previous_revisions`（迁移任务另传 `source_op_path`，见 migration.md §5）→ 新 `DESIGN.md` 后按正常流程进入 Stage 2 重新检视（迁移任务 9 维度；所有任务含维度 8）。
+3. 预算未超限 → `statectl start 1 --dir ...`（一次性修订通行证重入）→ 重新调度 designer（`mode=revision`），prompt 传入 `last_design_path` / `design_error_summary` / `revision_index` / `previous_revisions`（迁移任务另传 `source_op_path`（harness 按 `migration-source.md` 同传 `source_context`），见 migration.md §5）→ 新 `DESIGN.md` 后按正常流程进入 Stage 2 重新检视（迁移任务 9 维度；所有任务含维度 8）。
 
 ### 边界与防护
 

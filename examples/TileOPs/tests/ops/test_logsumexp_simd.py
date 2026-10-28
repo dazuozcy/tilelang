@@ -20,11 +20,11 @@ Spec-conformant interface:
 import pytest
 import torch
 
-from tileops.device import get_device_backend
-from tileops.ops.reduction.logsumexp_simd import LogSumExpFwdOpSimd
-from tileops.testing.test_base import TestBase
-from tileops.workloads.reduction import LogSumExpSimdWorkload
-from tileops.workloads.workload_base import FixtureBase
+from tests.workload_test_base import TestBase
+from tileops._ops.reduction.logsumexp_simd import LogSumExpFwdOpSimd
+from tileops.backend.device import get_device_backend
+from workloads.reduction import LogSumExpSimdWorkload
+from workloads.workload_base import FixtureBase
 
 
 def _device() -> str:

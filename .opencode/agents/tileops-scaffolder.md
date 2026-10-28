@@ -27,20 +27,20 @@ examples/TileOPs/.agents/skills/add-ascend-op/SKILL.md
 | 类型 | 内容 | 说明 |
 |------|------|------|
 | 必需输入 | `op_name` | PascalCase manifest 键，如 `SSDChunkScanFwdOp` |
-| 必需输入 | `gpu_repo_root` | GPU TileOPs 仓库根（绝对路径），如 `/home/tilelang/zuochuanuong/TileOPs-fork` |
-| 可选输入 | `family` | op 族目录（默认 `reduction`） |
+| 必需输入 | `gpu_repo_root` | GPU TileOPs 仓库根（绝对路径），如 `/home/zuo/code/TileOPs` |
+| 可选输入 | `family` | 从源 manifest 推导；显式传入时核对一致性 |
 | 输出 | 7 文件脚手架 | 按 skill S1-S7 产出，Tier 1 全过 |
-| 输出 | `.migration_meta.json` | `examples/TileOPs/tileops/kernels/{family}/{op_slug}/.migration_meta.json`（skill 机器模式 schema） |
+| 输出 | `.migration_meta.json` | `examples/TileOPs/src/tileops/_kernels/{family}/{op_slug}/.migration_meta.json`（skill 机器模式 schema） |
 | 输出 | 逐 kernel prompt 列表 | skill Output Prompt 章节生成的 N 条迁移 prompt |
 
 ## 执行流程
 
 1. **Read skill**：完整读取 `add-ascend-op/SKILL.md`，按 Phase 0 → S1 → … → S7 顺序执行。
-2. **Phase 0**：定位并通读 GPU 侧 6 类工件（manifest / op / kernel / workload / test / bench），记录输入数、reshape 策略、kernel 结构、GPU 执行参数。
+2. **Phase 0**：先读 skill 的 `references/tileops-src-layout.md`，用 `extract_tl_kernel.py --inspect` 发现新源仓规格与 `kernel_types`（支持继承、多文件）；不得假定源 manifest 含 `source.*`。随后定位并通读 GPU 侧 6 类工件（manifest / op / kernel / workload / test / bench），记录输入数、reshape 策略、kernel 结构、GPU 执行参数。
 3. **S1-S7**：逐文件移植并应用标准 Ascend 适配（K1-K11 / O1-O6 / W1 / T1-T4，见 skill）。所有命令在 `examples/TileOPs/` 目录下执行。
-4. **Tier 1 结构校验**：import 检查 / ruff / manifest 校验 / pytest --collect-only，全过才继续。
+4. **Tier 1 结构校验**：无 NPU 或用户禁止设备调用时，只做 AST/YAML/路径等静态检查，记录 runtime/import/collect 为未验证，不宣称完整 Tier 1 通过，不伪造完成信号。具备环境时执行import 检查 / ruff / manifest 校验 / pytest --collect-only，全过才继续。
 5. **helper 完备性检查**：skill S7 规定的提取文件自包含扫描。
-6. **机器模式收尾**：写 `.migration_meta.json`（schema 见 skill「Machine Mode (migration pipeline)」章节）。
+6. **机器模式收尾**：按 `.agents/skills/_shared/standards/migration-source.md` 合并提取器 `--source-info-out` 的逐函数来源，补齐用例列表与转换记录；随后写 `.migration_meta.json`（schema 见 skill「Machine Mode (migration pipeline)」章节）。
 7. **生成 prompt**：按 skill「Output Prompt」模板，每个提取函数一条，附在返回消息中。
 
 ## 共享测试/基准文件的移植规则
@@ -50,7 +50,7 @@ GPU 仓中多个算子可能共享一个 test/bench 文件（如 `test_mamba.py`
 - **只 port 本算子相关的** Test 类、Fixture、`test_*` 函数及其依赖的共享 fixture/workload。
 - 共享 imports 中仅保留被 port 部分实际引用的名字。
 - 其他算子的用例**不得**带入（它们尚未迁移，import 即失败）。
-- manifest `source.test` / `source.bench` 字段照抄 GPU 侧路径（文件存在即可，内容只含本算子）。
+- 新源仓无 `source.test` / `source.bench`：通过 imports 和实际调用定位目标用例及依赖，再写入 A5 manifest 的 `source`。多个入口必须完整记录，不得按文件名猜测。旧目录布局直接报告不支持，不尝试兼容。
 
 ## 失败分类
 
@@ -70,7 +70,7 @@ GPU 仓中多个算子可能共享一个 test/bench 文件（如 `test_mamba.py`
 - verdict: SCAFFOLD_COMPLETED / [SCAFFOLD_FAIL]
 - created_files: <7 文件列表>
 - extracted_functions: <函数列表>
-- meta: examples/TileOPs/tileops/kernels/{family}/{op_slug}/.migration_meta.json
+- meta: examples/TileOPs/src/tileops/_kernels/{family}/{op_slug}/.migration_meta.json
 - tier1: <各项 pass/fail>
 - migration_prompts: <逐函数 prompt，逐字粘贴 skill 生成的文本块>
 - issues: <若无则 none>

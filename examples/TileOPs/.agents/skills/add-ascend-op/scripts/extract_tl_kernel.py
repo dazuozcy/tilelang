@@ -24,7 +24,9 @@ from __future__ import annotations
 import argparse
 import ast
 import copy
+import json
 import re
+import subprocess
 import sys
 import textwrap
 from dataclasses import dataclass, field
@@ -41,14 +43,17 @@ import yaml
 def load_manifest_entry(op_name: str, repo_root: Path) -> dict[str, Any]:
     """Return the merged manifest entry for *op_name*.
 
-    Scans every ``tileops/manifest/*.yaml`` file and merges them, mirroring
+    Scans ``src/tileops/manifest/spec/*.yaml`` (excluding shared types), mirroring
     :func:`tileops.manifest.load_manifest` without importing the package.
     """
-    manifest_dir = repo_root / "tileops" / "manifest"
+    package_root = repo_root / "src" / "tileops"
+    manifest_dir = package_root / "manifest" / "spec"
     if not manifest_dir.is_dir():
         raise FileNotFoundError(f"manifest directory not found: {manifest_dir}")
     merged: dict[str, Any] = {}
     for path in sorted(manifest_dir.glob("*.yaml")):
+        if path.name == "types.yaml":
+            continue
         text = path.read_text(encoding="utf-8")
         ops = yaml.safe_load(text) or {}
         if not isinstance(ops, dict):
@@ -60,8 +65,22 @@ def load_manifest_entry(op_name: str, repo_root: Path) -> dict[str, Any]:
     if op_name not in merged:
         raise KeyError(f"op '{op_name}' not found in manifest under {manifest_dir}")
     entry = merged[op_name]
+    if isinstance(entry, dict):
+        # Source paths are implementation facts, absent from the new manifest.
+        # Discover them without importing torch, TileLang or the source package.
+        candidates = []
+        for path in sorted((package_root / "_ops").rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            if _find_class(tree, op_name) is not None:
+                candidates.append(path)
+        if len(candidates) != 1:
+            raise ValueError(f"{op_name}: expected one Op definition, found {candidates}")
+        op_rel = candidates[0].relative_to(repo_root).as_posix()
+        entry = dict(entry, source={"op": op_rel, "kernel": op_rel})
     if not isinstance(entry, dict) or "source" not in entry:
-        raise ValueError(f"op '{op_name}' has no 'source' section in manifest")
+        raise ValueError(
+            f"op {op_name!r} must have a manifest mapping and a discoverable Op definition"
+        )
     return entry
 
 
@@ -71,65 +90,51 @@ def load_manifest_entry(op_name: str, repo_root: Path) -> dict[str, Any]:
 
 
 def resolve_kernel_class_names(entry: dict[str, Any], op_name: str, repo_root: Path) -> list[str]:
-    """Return the kernel class name(s) declared for this op.
+    """Return classes declared by the source Op's kernel_types registry."""
+    bindings = resolve_kernel_bindings(entry, op_name, repo_root)
+    if not bindings:
+        raise ValueError(
+            f"{op_name}: no resolvable kernel_types registry; inspect the source implementation"
+        )
+    return [name for _, name in bindings]
 
-    Resolution order (prefers the op's own ``default_kernel_map`` because it
-    may declare more kernels than the manifest's ``source.kernel_map``):
 
-      1. ``default_kernel_map`` property in ``source.op`` (AST-parsed),
-         walking the class MRO and resolving ``self._kernel_class`` style
-         indirect references.
-      2. ``kernel_cls`` class attribute in ``source.op`` (AST-parsed).
-      3. ``source.kernel_map`` values (manifest-declared, fallback).
-    """
-    source = entry["source"]
-
-    op_rel = source.get("op")
+def resolve_kernel_bindings(
+    entry: dict[str, Any], op_name: str, repo_root: Path
+) -> list[tuple[Path, str]]:
+    """Resolve the nearest kernel_types declaration, including imported aliases."""
+    op_rel = entry["source"].get("op")
     if not op_rel:
-        # Fallback to manifest kernel_map if no op source file.
-        kmap = source.get("kernel_map")
-        if isinstance(kmap, dict) and kmap:
-            names = [v for v in kmap.values() if isinstance(v, str)]
-            if names:
-                return names
-        raise ValueError(f"op '{op_name}': no 'source.op' and no 'source.kernel_map'")
-
-    repo_root = repo_root.resolve()
-    op_file = repo_root / op_rel
-    if not op_file.exists():
-        raise FileNotFoundError(f"op source file not found: {op_file}")
-
+        return []
     loader = _Loader(repo_root)
-    mro = _walk_mro(loader, op_file, op_name)
-    if not mro:
-        raise ValueError(f"class {op_name} not found in {op_file}")
-
-    # 1. default_kernel_map (walk MRO, resolve self._kernel_class).
-    method_loc = _find_method_in_mro(mro, "default_kernel_map")
-    if method_loc is not None:
-        _m_file, m_node = method_loc
-        names = _names_from_default_kernel_map(m_node, mro)
-        if names:
-            return names
-
-    # 2. kernel_cls class attribute.
-    for _f, cls in mro:
-        attr = _class_attr_name_value(cls, "kernel_cls")
-        if attr:
-            return [attr]
-
-    # 3. Manifest kernel_map (fallback).
-    kmap = source.get("kernel_map")
-    if isinstance(kmap, dict) and kmap:
-        names = [v for v in kmap.values() if isinstance(v, str)]
-        if names:
-            return names
-
-    raise ValueError(
-        f"could not determine kernel class for '{op_name}': define "
-        f"default_kernel_map/kernel_cls in {op_file} or add 'source.kernel_map' "
-        f"to the manifest"
-    )
+    op_file = repo_root / op_rel
+    for file, cls in _walk_mro(loader, op_file, op_name):
+        for node in cls.body:
+            targets = (
+                node.targets
+                if isinstance(node, ast.Assign)
+                else [node.target]
+                if isinstance(node, ast.AnnAssign)
+                else []
+            )
+            if not any(isinstance(t, ast.Name) and t.id == "kernel_types" for t in targets):
+                continue
+            if not isinstance(node.value, ast.Dict) or not node.value.values:
+                raise ValueError(
+                    f"{op_name}: kernel_types in {file} is not a nonempty literal mapping; inspect manually"
+                )
+            bindings = []
+            for value in node.value.values:
+                if not isinstance(value, ast.Name):
+                    raise ValueError(f"{op_name}: dynamic kernel_types in {file}; inspect manually")
+                loc = _resolve_name_location(loader, file, value.id)
+                if loc is None or not isinstance(loc[1], ast.ClassDef):
+                    raise ValueError(f"{op_name}: cannot resolve kernel class {value.id} in {file}")
+                binding = (loc[0], loc[1].name)
+                if binding not in bindings:
+                    bindings.append(binding)
+            return bindings
+    return []
 
 
 def _find_class(tree: ast.Module, name: str) -> ast.ClassDef | None:
@@ -143,82 +148,6 @@ def _find_method(cls: ast.ClassDef, name: str) -> ast.FunctionDef | None:
     for node in cls.body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
             return node
-    return None
-
-
-def _names_from_returned_dict(method: ast.FunctionDef) -> list[str]:
-    """Collect ``ast.Name`` ids from the values of a returned dict literal."""
-    names: list[str] = []
-    for node in ast.walk(method):
-        if isinstance(node, ast.Return) and isinstance(node.value, ast.Dict):
-            for v in node.value.values:
-                if isinstance(v, ast.Name) and v.id not in names:
-                    names.append(v.id)
-    return names
-
-
-def _resolve_self_attr_in_mro(mro: list[tuple[Path, ast.ClassDef]], attr_name: str) -> str | None:
-    """Resolve ``self.<attr_name>`` to a class attribute value via the MRO.
-
-    Looks for ``<attr_name> = <Name>`` class-level assignments in the MRO
-    (most-derived first) and returns the Name's id. Used to resolve
-    ``self._kernel_class`` → the actual kernel class name.
-    """
-    for _file, cls in mro:
-        attr = _class_attr_name_value(cls, attr_name)
-        if attr:
-            return attr
-    return None
-
-
-def _names_from_default_kernel_map(
-    method: ast.FunctionDef, mro: list[tuple[Path, ast.ClassDef]]
-) -> list[str]:
-    """Extract kernel class names from a ``default_kernel_map`` method.
-
-    Handles two patterns:
-      1. ``return {"k": KernelClass, ...}`` — literal dict with Name values.
-      2. ``return {self._kernel_key: self._kernel_class}`` — indirect via
-         ``self.*`` class attributes; resolves ``_kernel_class`` through the
-         MRO.
-    """
-    for node in ast.walk(method):
-        if not isinstance(node, ast.Return) or not isinstance(node.value, ast.Dict):
-            continue
-        names: list[str] = []
-        for v in node.value.values:
-            if isinstance(v, ast.Name) and v.id not in names:
-                names.append(v.id)
-            elif (
-                isinstance(v, ast.Attribute)
-                and isinstance(v.value, ast.Name)
-                and v.value.id == "self"
-            ):
-                # self._kernel_class → resolve via MRO class attribute.
-                resolved = _resolve_self_attr_in_mro(mro, v.attr)
-                if resolved and resolved not in names:
-                    names.append(resolved)
-        return names
-    return []
-
-
-def _class_attr_name_value(cls: ast.ClassDef, attr_name: str) -> str | None:
-    for node in cls.body:
-        if isinstance(node, ast.Assign):
-            for tgt in node.targets:
-                if (
-                    isinstance(tgt, ast.Name)
-                    and tgt.id == attr_name
-                    and isinstance(node.value, ast.Name)
-                ):
-                    return node.value.id
-        elif (
-            isinstance(node, ast.AnnAssign)
-            and isinstance(node.target, ast.Name)
-            and node.target.id == attr_name
-            and isinstance(node.value, ast.Name)
-        ):
-            return node.value.id
     return None
 
 
@@ -254,6 +183,7 @@ class _Loader:
 
     def __init__(self, repo_root: Path) -> None:
         self.repo_root = repo_root
+        self.import_root = repo_root / "src"
         self._cache: dict[Path, SymbolTable] = {}
 
     def load(self, path: Path) -> SymbolTable:
@@ -328,10 +258,10 @@ class _Loader:
 
     def _resolve_abs(self, module: str) -> Path | None:
         parts = module.split(".")
-        py = self.repo_root.joinpath(*parts).with_suffix(".py")
+        py = self.import_root.joinpath(*parts).with_suffix(".py")
         if py.exists():
             return py
-        init = self.repo_root.joinpath(*parts) / "__init__.py"
+        init = self.import_root.joinpath(*parts) / "__init__.py"
         if init.exists():
             return init
         return None
@@ -772,9 +702,35 @@ class Extractor:
 
     # -- entry point ------------------------------------------------------ #
 
-    def extract(self, kernel_file: Path, kernel_class_names: list[str], op_name: str) -> str:
-        self.targets = self._resolve_targets(kernel_file, kernel_class_names, op_name)
+    def extract(
+        self,
+        kernel_file: Path,
+        kernel_class_names: list[str],
+        op_name: str,
+        *,
+        bindings: list[tuple[Path, str]] | None = None,
+    ) -> str:
+        if bindings and len(bindings) > 1:
+            self.pattern = "B"
+            for file, name in bindings:
+                self._discover(file, name)
+            self.targets = self._pattern_b(bindings[0][0], [])
+        else:
+            if bindings:
+                kernel_file, name = bindings[0]
+                kernel_class_names = [name]
+            self.targets = self._resolve_targets(kernel_file, kernel_class_names, op_name)
         targets = self.targets
+        if not targets:
+            raise ValueError(f"{op_name}: no reachable TileLang kernel functions")
+        names: dict[str, Path] = {}
+        for target in targets:
+            name = target.merged_ast.name if target.merged_ast is not None else target.node.name
+            if name in names and names[name] != target.file:
+                raise ValueError(
+                    f"{op_name}: conflicting extracted name {name!r} in {names[name]} and {target.file}; rename explicitly"
+                )
+            names[name] = target.file
 
         # Always discover the original builder (loads its file into cache so
         # imports/constants are available), even when op_func has been inlined
@@ -1124,6 +1080,16 @@ def main(argv: list[str] | None = None) -> int:
         "When a directory is given, the filename is "
         "auto-generated as _<op_slug>_kernels.py.",
     )
+    parser.add_argument(
+        "--inspect",
+        action="store_true",
+        help="Print source metadata as JSON without extracting or importing device code",
+    )
+    parser.add_argument(
+        "--source-info-out",
+        type=Path,
+        help="Write discovered GPU provenance for Stage 0 (tests/workloads/conversion still require review)",
+    )
     args = parser.parse_args(argv)
 
     repo_root = args.gpu_repo_root.resolve()
@@ -1131,6 +1097,21 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"--gpu-repo-root does not exist: {repo_root}")
 
     entry = load_manifest_entry(args.op_name, repo_root)
+    if args.inspect:
+        print(
+            json.dumps(
+                {
+                    "op_name": args.op_name,
+                    "entry": entry,
+                    "kernel_bindings": [
+                        {"path": str(p.relative_to(repo_root)), "class": n}
+                        for p, n in resolve_kernel_bindings(entry, args.op_name, repo_root)
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 0
     source = entry["source"]
     kernel_rel = source.get("kernel")
     if not kernel_rel:
@@ -1142,7 +1123,12 @@ def main(argv: list[str] | None = None) -> int:
     target_names = resolve_kernel_class_names(entry, args.op_name, repo_root)
 
     extractor = Extractor(repo_root)
-    output = extractor.extract(kernel_file, target_names, args.op_name)
+    output = extractor.extract(
+        kernel_file,
+        target_names,
+        args.op_name,
+        bindings=resolve_kernel_bindings(entry, args.op_name, repo_root),
+    )
 
     for w in extractor.warnings:
         print(f"[warn] {w}", file=sys.stderr)
@@ -1154,6 +1140,41 @@ def main(argv: list[str] | None = None) -> int:
         out_path = out_path / f"_{_op_name_to_snake(args.op_name)}_kernels.py"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(output, encoding="utf-8")
+
+    if args.source_info_out:
+        manifest_dir = repo_root / "src/tileops/manifest/spec"
+        manifest_paths = [
+            p
+            for p in sorted(manifest_dir.glob("*.yaml"))
+            if p.name != "types.yaml" and args.op_name in (yaml.safe_load(p.read_text()) or {})
+        ]
+        revision = subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse", "HEAD"], capture_output=True, text=True
+        )
+        dirty = subprocess.run(
+            ["git", "-C", str(repo_root), "status", "--porcelain"], capture_output=True, text=True
+        )
+        provenance = {
+            "source_layout": "src",
+            "gpu_repo_root": str(repo_root),
+            "gpu_source": {
+                "manifest_path": manifest_paths[0].relative_to(repo_root).as_posix(),
+                "op_path": source.get("op"),
+                "kernel_bindings": [
+                    {"path": p.relative_to(repo_root).as_posix(), "class": n}
+                    for p, n in resolve_kernel_bindings(entry, args.op_name, repo_root)
+                ],
+                "function_sources": {
+                    t.node.name: t.file.relative_to(repo_root).as_posix() for t in extractor.targets
+                },
+                "revision": revision.stdout.strip() if revision.returncode == 0 else "unversioned",
+                "dirty": bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
+            },
+        }
+        args.source_info_out.parent.mkdir(parents=True, exist_ok=True)
+        args.source_info_out.write_text(
+            json.dumps(provenance, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
 
     # Report which source files contributed to the extraction.
     contributing = extractor.contributing_files()

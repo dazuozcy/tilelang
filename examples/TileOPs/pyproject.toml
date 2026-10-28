@@ -10,8 +10,6 @@ dependencies = [
 ]
 
 [project.scripts]
-# The reporting CLI module is landed by the parallel reporting/benchmark
-# port; until then the entry point resolves only at invocation time.
 tileops-report = "tileops.reporting.cli:main"
 
 [project.optional-dependencies]
@@ -26,14 +24,15 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["tileops*"]
 
 [tool.setuptools.package-data]
-tileops = ["manifest/*.yaml", "reporting/*.html"]
+tileops = ["manifest/spec/*.yaml", "reporting/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "benchmarks"]
+pythonpath = ["src", "."]
 python_files = ["test_*.py", "bench_*.py"]
 markers = [
     "smoke: fast critical-path tests",

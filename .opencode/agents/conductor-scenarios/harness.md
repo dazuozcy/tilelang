@@ -23,11 +23,19 @@ INIT --> SCAFFOLD --> (DEV_LOOP: 每函数 DESIGN --> REVIEW --> DEVELOP) --> IN
 - GPU 参考实现位置与规格（manifest workloads、test/bench 路径）从 Stage 0 的 `.migration_meta.json` 读取，调度 designer 时随 prompt 传入。
 - 预检不问用户：规格从 GPU 仓 meta 与源码推断（迁移公共规则见 migration.md §1）。
 
+## 2.1 源仓与目标仓边界
+
+当前 GPU 源仓为 `/home/zuo/code/TileOPs`：`src/tileops/manifest/spec/*.yaml`、`src/tileops/_ops/`、`src/tileops/_kernels/`，workloads/tests/benchmarks 位于仓库根目录。Ascend 目标 `examples/TileOPs/` 同样采用 `src/tileops/{_ops,_kernels,manifest/spec}`，workloads/tests/benchmarks 在目标根目录；旧布局不再支持。
+
+Stage 0 与 Stage 5 都必须读 `examples/TileOPs/.agents/skills/add-ascend-op/references/tileops-src-layout.md`。源 manifest 无 `source`，规格语法、Kernel/Op 接口及 bench API 均需按该文档转换；meta 中 wrapper/test/bench 等路径始终指向 **A5 目标**。新源 meta 必须遵循 `.agents/skills/_shared/standards/migration-source.md`（含逐函数来源和转换记录）；调度 Stage 1/2/3 及修订时完整传递 `source_context`。
+
+无 NPU 或用户明确禁止设备操作时，只进行静态适配，不运行 import 冒烟、pytest collection、report 或 msprof；静态结果不能替代精度和 Stage 5 门禁，不产生 `INTEGRATE_COMPLETED`。
+
 ## 3. Stage 0 — 迁移脚手架 Agent（`@tileops-scaffolder`，仅 harness）
 
 - **触发条件**：场景路由判定 `migration` + `migration_mode=harness`，状态 `init` 后
-- **输入**：`op_name`、`gpu_repo_root`、`family`（可选，默认 reduction）
-- **输出/交付件**：TileOPs 7 文件脚手架（Tier 1 结构校验通过）+ `examples/TileOPs/tileops/kernels/{family}/{op_slug}/.migration_meta.json` + 逐函数迁移 prompt
+- **输入**：`op_name`、`gpu_repo_root`、`family`（可选，从 GPU manifest 推导）
+- **输出/交付件**：TileOPs 7 文件脚手架（Tier 1 结构校验通过）+ `examples/TileOPs/src/tileops/_kernels/{family}/{op_slug}/.migration_meta.json` + 逐函数迁移 prompt
 - **完成信号**：`SCAFFOLD_COMPLETED`（携带 meta_path、extracted_functions、migration_prompts）
 - **失败信号**：`[SCAFFOLD_FAIL]` + 原因
 - **编排层动作**：
@@ -45,7 +53,7 @@ INIT --> SCAFFOLD --> (DEV_LOOP: 每函数 DESIGN --> REVIEW --> DEVELOP) --> IN
 ```json
 {
   "op_name": "{op_name}", "op_slug": "{op_slug}", "family": "{family}",
-  "meta_path": "examples/TileOPs/tileops/kernels/{family}/{op_slug}/.migration_meta.json",
+  "meta_path": "examples/TileOPs/src/tileops/_kernels/{family}/{op_slug}/.migration_meta.json",
   "phase": "SCAFFOLD | DEV_LOOP | INTEGRATE | DONE | FAILED",
   "functions": {"{func}": {"stage_state": "examples/{op_slug}/{func}/.stage_state.json", "status": "pending | in_progress | done | failed"}},
   "integration": {"attempts": 0, "status": null}
@@ -66,8 +74,8 @@ harness 迁移**不询问调优、不进入 Stage 4**（bench 由 Stage 5 仅报
 
 - **触发条件**：全部提取函数 Stage 3 通过且二次校验完成（`.migration_state.json` 的 `functions` 全部 `done`）
 - **输入**：`meta_path`、`op_name`、`op_slug`、`family`、`attempt_index`、`max_attempts`（默认 5）
-- **输出/交付件**：`tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/`（集成 kernel 文件 + 每函数 `{func}_DESIGN.md` 设计文档快照（源自 `examples/{op_slug}/{func}/DESIGN.md`）+ 聚合 `__init__.py` + `integration_log.md` + `integration_report.json`），wrapper import 已改写为 baseline/perf_opt 双 import 切换块（baseline 默认激活，perf_opt 注释占位）；另有本次单算子 TileOPs `run.json`、`report.md`、`report.html`
-- **完成信号**：三态之一：`INTEGRATE_COMPLETED`（从 `examples/TileOPs/` 运行 `python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof`；本次 report 全量正确性通过、benchmark 已运行并报告；report 为 `partial` 时明确披露 benchmark 失败/无效但不阻断集成）/ `[INTEGRATE_FAIL]` / `[DESIGN_ERROR]`
+- **输出/交付件**：`src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/`（集成 kernel 文件 + 每函数 `{func}_DESIGN.md` 设计文档快照（源自 `examples/{op_slug}/{func}/DESIGN.md`）+ 聚合 `__init__.py` + `integration_log.md` + `integration_report.json`），wrapper import 已改写为 baseline/perf_opt 双 import 切换块（baseline 默认激活，perf_opt 注释占位）；另有本次单算子 TileOPs `run.json`、`report.md`、`report.html`
+- **完成信号**：三态之一：`INTEGRATE_COMPLETED`（从 `examples/TileOPs/` 运行 `PYTHONPATH=src:.:../.. python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof`；本次 report 全量正确性通过、benchmark 已运行并报告；report 为 `partial` 时明确披露 benchmark 失败/无效但不阻断集成）/ `[INTEGRATE_FAIL]` / `[DESIGN_ERROR]`
 - **编排层动作**：
   - `INTEGRATE_COMPLETED` → `complete_stage(5)` → `phase=DONE`（harness 迁移不询问调优；最终报告附本次 report 路径、bench 状态与有效数值，以及"可另起 optimize 场景"提示）
   - `[INTEGRATE_FAIL]` → `fail_stage(5)` → 重新调度 integrator 传入 `last_failure_summary`（`stage_retry_count[5]` 上限 2；integrator 内部已有 5 次调试闭环，两级预算独立）；超限 → `phase=FAILED`、`failure_reason=BLOCKED_INTEGRATION`
@@ -108,7 +116,7 @@ opencode export <session_id> > examples/{op_slug}/full.json
 ```
 
 5. `breakdown` 按各阶段实际开始时间升序排列，只保留对理解总耗时有用的主要环节，避免把报告扩展成逐事件流水账；每项 `detail` 写明该阶段的开始/结束时间和日志证据摘要。减少耗时方案留在 Markdown 正文，报告只展示总耗时和上述时间明细。
-6. Markdown 写入成功后，从集成包的 `integration_report.json` 读取本次 `run.json` 仓库相对路径；文件有效时从 `examples/TileOPs/` 执行 `python -m tileops.reporting.cli render {run_json} --with-session-timing`，原地更新该 run 的 `run.json` / `report.md` / `report.html`，**不得重跑 correctness 或 benchmark**。`run.json` 缺失或无效时不伪造报告，最终汇报披露无法重渲染，然后仍将 Markdown 交给 evolver。
+6. Markdown 写入成功后，从集成包的 `integration_report.json` 读取本次 `run.json` 仓库相对路径；文件有效时从 `examples/TileOPs/` 执行 `PYTHONPATH=src:.:../.. python -m tileops.reporting.cli render {run_json} --with-session-timing`，原地更新该 run 的 `run.json` / `report.md` / `report.html`，**不得重跑 correctness 或 benchmark**。`run.json` 缺失或无效时不伪造报告，最终汇报披露无法重渲染，然后仍将 Markdown 交给 evolver。
 
 ## 8. harness 设计修订特例
 
@@ -127,9 +135,9 @@ examples/{op_slug}/               # op 级目录（project = op_slug）
 └── {func}/                       # 每个提取函数一个算子目录（结构同主文件标准目录，无 Stage 4；含函数级 RETROSPECTIVE.md）
 
 examples/TileOPs/                              # 集成侧
-├── tileops/manifest/{family}.yaml             # Stage 0 产物（S1）
-├── tileops/workloads/{family}.py              # Stage 0 产物（S2）
-├── tileops/kernels/{family}/{op_slug}/
+├── src/tileops/manifest/spec/{family}.yaml             # Stage 0 产物（S1）
+├── workloads/{family}.py              # Stage 0 产物（S2）
+├── src/tileops/_kernels/{family}/{op_slug}/
 │   ├── {op_slug}.py                            # wrapper（Stage 0 移植，Stage 5 改写为 baseline/perf_opt 双 import 切换块）
 │   ├── .migration_meta.json                    # Stage 0 机器模式产物
 │   └── {op_slug}_kernel/                       # Stage 5 集成包

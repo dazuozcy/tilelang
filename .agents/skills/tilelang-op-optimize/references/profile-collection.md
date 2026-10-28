@@ -2,13 +2,13 @@
 
 本文档服务 `tilelang-op-optimize` 的 Stage 4。性能调优对象是 benchmark 实际参数化的、可运行且非 smoke 的 workload；合并对象是它们实际调用的 Stage 3 kernel。**时延口径：`tilelang.profiler.do_bench(fn, backend="msprof")` 为唯一端到端时延口径（返回毫秒，×1000 记 µs），npusim 为唯一周期级归因口径**（权威：`tilelang-ascend` skill §12 + `references/profiling.md`）；不使用 NPU event、host wall-clock 等其他时延口径。
 
-> **TileOPs 依赖注记**：TileOPs 工程移植（Phase 3）完成前，optimize 场景仅支持非 TileOPs 独立算子（用户明确指定性能 workload）；TileOPs 集成算子定位与 benchmark 展开待 Phase 3 解锁。本文 benchmark 参数化入口相关流程为 Phase 3 解锁后的目标形态。
+> **TileOPs 依赖检查**：确认本地 A5 集成算子与迁移后 benchmark 入口已存在；缺失时报告依赖，不能用 GPU 源仓 API 代替。来源边界遵循 `_shared/standards/migration-source.md`。
 
 ---
 
 ## 1. 建立 benchmark workload 清单
 
-TileOPs 迁移/集成场景（Phase 3 解锁后）读取迁移后的 benchmark 参数化入口，展开每个案例的 `workload_id`、shape、dtype、影响 kernel 的参数和 benchmark 来源。benchmark 可以通过 helper 从 manifest 生成参数，但**只取 benchmark 实际展开的案例**；不得额外枚举 manifest、L0/L1/L2/Boundary 测试或补造 benchmark 中不存在的 case。只提取 workload 参数，不要求先运行正式 benchmark、接入 wrapper 或注入候选实现。非 TileOPs、确无迁移 benchmark 的独立算子使用用户明确指定的性能 workload，逐 kernel/逐 workload 建立 inventory；`benchmark_source` 记为 `explicit_target`。
+TileOPs 迁移/集成场景（本地 A5 算子已集成时）读取迁移后的 benchmark 参数化入口，展开每个案例的 `workload_id`、shape、dtype、影响 kernel 的参数和 benchmark 来源。benchmark 可以通过 helper 从 manifest 生成参数，但**只取 benchmark 实际展开的案例**；不得额外枚举 manifest、L0/L1/L2/Boundary 测试或补造 benchmark 中不存在的 case。只提取 workload 参数，不要求先运行正式 benchmark、接入 wrapper 或注入候选实现。非 TileOPs、确无迁移 benchmark 的独立算子使用用户明确指定的性能 workload，逐 kernel/逐 workload 建立 inventory；`benchmark_source` 记为 `explicit_target`。
 
 逐案例确认它实际调用的 Stage 3 kernel，记录可唯一定位实现文件及函数的 `kernel_id` 与被测 kernel 的构造/调用方式（用于测量时的 callable 边界与追溯）。一个案例若调用多个目标 kernel，分别登记 workload–kernel 对；无法确认映射时记录原因并停止该案例的性能采集。TileOPs 原有 op 层路由只用于查明映射，不是 Stage 4 调优单位，也不应修改。
 
@@ -34,14 +34,13 @@ TileOPs 迁移/集成场景（Phase 3 解锁后）读取迁移后的 benchmark �
 import statistics
 from tilelang.profiler import do_bench
 
+
 def run():  # ADAPT: 用 workload 参数调用被测 kernel 对象（单次发射）
     kernel(x, w)
 
+
 # 端到端时延（msprof backend）：do_bench 返回毫秒
-samples_ms = [
-    do_bench(run, backend="msprof", warmup=25, rep=100, early_stop_baseline=None)
-    for _ in range(5)
-]
+samples_ms = [do_bench(run, backend="msprof", warmup=25, rep=100, early_stop_baseline=None) for _ in range(5)]
 latency_us = statistics.median(samples_ms) * 1000  # ms -> us
 
 # 深挖（可选）：KernelProfile —— dur_ns、AIC/AIV cycle counts、pipe ratios

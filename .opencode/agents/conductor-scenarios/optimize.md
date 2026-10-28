@@ -21,7 +21,7 @@ INIT --> TUNING --> 精度回归 --> DONE / FAILED
 
 ## 2. 算子目录定位与命名
 
-- standalone 产物 → `examples/{project}/{op}/`；TileOPs 集成产物 → `examples/TileOPs/tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/`（此时该目录即算子目录，`perf_opt/` 建在其下）。
+- standalone 产物 → `examples/{project}/{op}/`；TileOPs 集成产物 → `examples/TileOPs/src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/`（此时该目录即算子目录，`perf_opt/` 建在其下）。
 - `statectl init` 时算子目录 = kernel 所在目录（`--kernel-path` 传入定位到的 kernel）。
 
 ## 3. 预检必需字段（Primary 上下文收集，缺失时问用户）
@@ -35,7 +35,7 @@ INIT --> TUNING --> 精度回归 --> DONE / FAILED
 
 ## 4. 回归入口与精度回归 gate
 
-- **回归入口**：standalone → `python {kernel_dir}/{op}.py --level all`（L0/L1 失败阻塞，L2/Boundary 告警不阻塞）；TileOPs 集成 → 优先直接跑 `python {kernel_dir}/perf_opt/{func}.py --level all`（内嵌分层测试）。采纳（wrapper 切换到 perf_opt）后，从 `examples/TileOPs/` 运行 `python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof` 作单算子端到端验收（`--prof-mode msprof` 内部封装 `do_bench(backend="msprof")`）；`{op_name}` 取 manifest 的 PascalCase 键，不使用目录 `op_slug`。记录本次 `run.json` 与 `report.md` 路径；正确性失败则翻回 baseline，benchmark `partial` 只如实报告，不代替 Stage 4 的逐 workload 实测结论。
+- **回归入口**：standalone → `python {kernel_dir}/{op}.py --level all`（L0/L1 失败阻塞，L2/Boundary 告警不阻塞）；TileOPs 集成 → 优先直接跑 `python {kernel_dir}/perf_opt/{func}.py --level all`（内嵌分层测试）。采纳（wrapper 切换到 perf_opt）后，从 `examples/TileOPs/` 运行 `PYTHONPATH=src:.:../.. python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof` 作单算子端到端验收（`--prof-mode msprof` 内部封装 `do_bench(backend="msprof")`）；`{op_name}` 取 manifest 的 PascalCase 键，不使用目录 `op_slug`。记录本次 `run.json` 与 `report.md` 路径；正确性失败则翻回 baseline，benchmark `partial` 只如实报告，不代替 Stage 4 的逐 workload 实测结论。
 - **精度回归 gate**：`TUNING_COMPLETED` 后你亲自对 `perf_opt/{op}.py` 执行回归入口；失败 → 重新调度 optimizer（`mode=precision_fix`，计入 `stage_retry_count[4]`——该模式只跑 L0/L1 回归修复，不重走 Phase 1 采数与已完成轮次，从当前最优版本继续，见 `_shared/standards/signal-registry.md` §2）；超限 → 交付已验证的最优版本并如实报告。
 - 精度回归失败**只在 Stage 4 内 `precision_fix` 重调度，不回退 Stage 3**。
 

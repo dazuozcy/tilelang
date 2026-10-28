@@ -5,6 +5,8 @@ description: "对精度已通过的 TileLang-Ascend 算子做 Stage 4 性能调�
 
 # TileLang-Ascend 算子性能调优
 
+迁移来源与阶段衔接遵循 [migration-source.md](../_shared/standards/migration-source.md)。TileOPs 只从目标 A5 benchmark 展开 workload；GPU 源仓 API 与性能数值不得代替本地入口和测量。
+
 ## 目标
 
 对 Stage 3 精度通过的 `{op}.py` 做真实性能调优，产出：
@@ -20,7 +22,7 @@ description: "对精度已通过的 TileLang-Ascend 算子做 Stage 4 性能调�
 
 **性能口径唯一**：`tilelang.profiler.do_bench(fn, backend="msprof")` 为**唯一端到端时延口径**（返回毫秒，×1000 记 µs），**npusim 为唯一周期级归因口径**（权威：`tilelang-ascend` skill §12 + `references/profiling.md`）。主指标 `primary_metric: do_bench_msprof_latency`，派生指标 TFLOPS=`2*M*N*K/t`、有效 GB/s。深挖用 `backend="msprof_detail"`（`KernelProfile`：`dur_ns`、AIC/AIV cycle counts、pipe ratios——AIC：mad/scalar/mte1/mte2/mte3/fixpipe，AIV：vec/scalar/mte2/mte3）。一切优化点的讨论、实验对比、winner 判定和性能目标达成判断，均以降低 do_bench(msprof) 时延为准；不采集 NPU event、host wall-clock 等其他时延口径。候选差异落入噪声阈值或多次复测打平时，用更多采样与独立运行复测（对账阈值：同 workload 重复运行方差 ≤1%），并以时延、负载均衡和资源占用决胜，不得引入其他测量口径。
 
-> **TileOPs 依赖注记**：TileOPs 工程移植（Phase 3）完成前，optimize 场景仅支持非 TileOPs 独立算子（用户明确指定性能 workload）；TileOPs 集成算子定位与 benchmark 展开待 Phase 3 解锁。本文涉及 benchmark 参数化入口（`benchmark_entry`）的流程描述为 Phase 3 解锁后的目标形态，Phase 3 前以用户指定 workload 建立 inventory（`benchmark_source` 记 `explicit_target`）。
+> **TileOPs 依赖检查**：先确认本地 `examples/TileOPs/` 的集成算子和迁移后 benchmark 入口存在。目标尚未集成时不能用 GPU 源仓 benchmark 代替，须报告缺失项；独立算子按用户明确指定 workload 建立 inventory（`benchmark_source=explicit_target`）。
 
 ## 资源索引
 
@@ -80,7 +82,7 @@ description: "对精度已通过的 TileLang-Ascend 算子做 Stage 4 性能调�
 
 要求：
 
-- TileOPs 迁移/集成场景（Phase 3 解锁后）的性能目标只取 benchmark 中可运行的非 smoke workload；smoke 不做性能采集或调优，但每次合并及最终用于精度回归；skip 记录原因。非 TileOPs 且确无迁移 benchmark 的独立算子使用用户明确指定的性能 workload，并逐 kernel/逐 workload 建立 inventory（`benchmark_source` 记 `explicit_target`）。
+- TileOPs 迁移/集成场景（本地 A5 框架与算子已集成时）的性能目标只取 benchmark 中可运行的非 smoke workload；smoke 不做性能采集或调优，但每次合并及最终用于精度回归；skip 记录原因。非 TileOPs 且确无迁移 benchmark 的独立算子使用用户明确指定的性能 workload，并逐 kernel/逐 workload 建立 inventory（`benchmark_source` 记 `explicit_target`）。
 - 不额外枚举 manifest 或测试案例，不提前运行正式 benchmark、接入 wrapper 或新增候选注入接口。TileOPs 原有 op 层分派保持不变，仅用来确定 workload 实际进入哪个 kernel。
 - 一个 optimizer subagent 逐 kernel、逐 workload 串行执行；do_bench 测量全局串行，禁止并发 profiling。
 - 无效测量不能进入诊断。
@@ -121,7 +123,7 @@ Phase 2 对每个 kernel 的 tune workload 按 Phase 1 排序逐个执行多轮�
 
 1. 选各 kernel 已合并 current best 作为 `perf_opt/{op}.py`，对所有 tune workload 在最终文件上重新采集 `phase=final` 记录，并对 smoke 做最终精度回归。
 2. `perf_opt/opt_log.md` 的 Final Summary 逐 `kernel_id + workload_id` 列出 baseline、同一最终候选的时延、提升/回退及测量证据（`Final Performance Test Data` 表，逐项 `kernel_id | workload_id | baseline_us | final_us | final_candidate_id`），列出 smoke/skip 排除与精度结果；最终表的全部时延必须来自同一最终候选。gate 4 依据 `workload_inventory.json` 与 `perf_records.jsonl` 逐项对账（final 与同 workload 复测的 do_bench 重复运行方差 ≤1%）。
-3. TileOPs 集成算子（Phase 3 解锁后；算子目录为 `tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/`）：`perf_opt/` 建在该目录下；wrapper 的 baseline/perf_opt 双 import 切换块由 conductor 在回归通过后翻转采纳（perf_opt 默认激活），本 skill 不修改 wrapper。若 tuned kernel 与基准 kernel 的默认参数不同（如 block_size），须在 `perf_opt/{op}.py` 中以模块级常量暴露 tuned 默认值，供 wrapper 切换块成对引用。
+3. TileOPs 集成算子（本地 A5 框架与算子已集成；算子目录为 `src/tileops/_kernels/{family}/{op_slug}/{op_slug}_kernel/`）：`perf_opt/` 建在该目录下；wrapper 的 baseline/perf_opt 双 import 切换块由 conductor 在回归通过后翻转采纳（perf_opt 默认激活），本 skill 不修改 wrapper。若 tuned kernel 与基准 kernel 的默认参数不同（如 block_size），须在 `perf_opt/{op}.py` 中以模块级常量暴露 tuned 默认值，供 wrapper 切换块成对引用。
 4. **设计层天花板判定（[DESIGN_LIMIT]，可选产出）**：读取 [perf-feedback.md](../_shared/standards/perf-feedback.md)，逐条核对触发条件——① 性能天花板由算法/设计层决定（非 tiling/参数可解，归因到 DESIGN.md 具体假设）；② 结构性加速估计 > 2x 或实测与设计假设直接矛盾。**两项同时满足** → 按其 §2 固定 schema（含**参照锚定**章节）产出 `perf_opt/perf_feedback.md`（实测章节必须为 do_bench(msprof)/npusim 口径，反馈结论含建议路由），返回时附 `[DESIGN_LIMIT]` 信号；任一不满足 → **禁止产出**该文件（参数级不足留在迭代内，不触发逆向反馈）。**「当前工具链/硬件上限内不可达」类断言的证据门槛**：① 断言前强制检索仓库内同族先例（`examples/ascend/`/`testing/ascend/` 是否已有同 API 可达结构），找到先例时同口径实测 + morph 式最小增量对照（iteration-diagnosis.md「参考实现对照」）排除「冻结设计族局部地板」误判——实测外推的地板只对实测过的结构族有效（前序实证证据边界，见 negative-claim-evidence.md 第 6 条）；② 否决备选结构的理由须为实测或文档条款，纯推理否决标注为未实证假设；③ 已产出的 [DESIGN_LIMIT] 被后续实测推翻时不删改原文（append-only），以「修正附录」回填 perf_feedback.md（结论限定于冻结设计族 + 修正证据表 + 存活硬上限清单 + 根因记录）。
 
 ### Phase 4：调优复盘与最终交付

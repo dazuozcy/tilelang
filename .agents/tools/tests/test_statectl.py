@@ -853,10 +853,12 @@ def test_gate1_cores_elements_missing(tmp_path):
     repo = make_repo(tmp_path)
     d = op_dir(repo)
     bad = DESIGN_MD.replace(
-        "grid 划分：num_blocks = ceil(M / block_M)（一维 T.Kernel(N)）。", "按 block 划分。"
+        "grid 划分：num_blocks = ceil(M / block_M)（一维 T.Kernel(N)）。",
+        "按 block 划分。",
     )
     bad = bad.replace(
-        "核数依据：torch.npu.get_device_properties().cube_core_num 实查值，查询代码已记录。", ""
+        "核数依据：torch.npu.get_device_properties().cube_core_num 实查值，查询代码已记录。",
+        "",
     )
     bad = bad.replace(
         "AIC/AIV 分工：纯 Vector 算子，仅占 AIV；同步策略：auto_schedule: yes。", ""
@@ -1171,14 +1173,53 @@ def _make_harness_repo(tmp_path):
         repo
         / "examples"
         / "TileOPs"
+        / "src"
         / "tileops"
-        / "kernels"
+        / "_kernels"
         / "reduction"
         / "mop"
         / ".migration_meta.json"
     )
     meta_path.parent.mkdir(parents=True)
-    meta_path.write_text(json.dumps(META), encoding="utf-8")
+    source = repo / "gpu"
+    source_paths = [
+        "src/tileops/manifest/spec/reduction.yaml",
+        "src/tileops/_ops/mop.py",
+        "src/tileops/_kernels/mop.py",
+        "workloads/reduction.py",
+        "tests/ops/test_mop.py",
+        "benchmarks/ops/bench_mop.py",
+    ]
+    for rel in source_paths:
+        path = source / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# source fixture\n", encoding="utf-8")
+    meta = dict(
+        META,
+        source_layout="src",
+        gpu_repo_root=str(source),
+        wrapper_path="src/tileops/_kernels/reduction/mop/mop.py",
+        extracted_file="src/tileops/_kernels/reduction/mop/_reference.py",
+        conversion_path="src/tileops/_kernels/reduction/mop/conversion.md",
+        gpu_source={
+            "manifest_path": source_paths[0],
+            "op_path": source_paths[1],
+            "kernel_bindings": [{"path": source_paths[2], "class": "MopKernel"}],
+            "function_sources": {
+                f: source_paths[2] for f in META["extracted_functions"]
+            },
+            "workload_paths": [source_paths[3]],
+            "test_paths": [source_paths[4]],
+            "bench_paths": [source_paths[5]],
+            "revision": "fixture",
+        },
+    )
+    base = repo / "examples/TileOPs"
+    for key in ("extracted_file", "conversion_path", "test_path", "bench_path"):
+        path = base / meta[key]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# target fixture\n", encoding="utf-8")
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
     return repo, slug_dir, meta_path
 
 
@@ -1257,9 +1298,9 @@ def test_gate0_meta_lint(tmp_path):
     # 补齐脚手架
     base = repo / "examples" / "TileOPs"
     for rel in (
-        "tileops/manifest/reduction.yaml",
-        "tileops/workloads/reduction.py",
-        "tileops/kernels/reduction/mop/mop.py",
+        "src/tileops/manifest/spec/reduction.yaml",
+        "workloads/reduction.py",
+        "src/tileops/_kernels/reduction/mop/mop.py",
         "tests/ops/test_mop.py",
         "benchmarks/ops/bench_mop.py",
     ):
@@ -1322,8 +1363,9 @@ def test_gate5_integration_lint(tmp_path):
         repo
         / "examples"
         / "TileOPs"
+        / "src"
         / "tileops"
-        / "kernels"
+        / "_kernels"
         / "reduction"
         / "mop"
         / "mop_kernel"
@@ -1340,8 +1382,9 @@ def test_gate5_integration_lint(tmp_path):
         repo
         / "examples"
         / "TileOPs"
+        / "src"
         / "tileops"
-        / "kernels"
+        / "_kernels"
         / "reduction"
         / "mop"
         / "mop.py"
@@ -1382,8 +1425,9 @@ def _ready_stage5_gate(tmp_path):
         repo
         / "examples"
         / "TileOPs"
+        / "src"
         / "tileops"
-        / "kernels"
+        / "_kernels"
         / "reduction"
         / "mop"
         / "mop_kernel"
@@ -1411,7 +1455,7 @@ def test_gate5_rejects_missing_mode_and_legacy_ascend_mode(tmp_path):
     # legacy ascend_mode reference in wrapper is rejected (mechanism deleted)
     wrapper.write_text(
         wrapper.read_text(encoding="utf-8")
-        + "from tileops.kernels.kernel_base import Kernel\n"
+        + "from tileops._kernels.kernel_base import Kernel\n"
         "class MopKernel(Kernel):\n"
         '    ascend_mode = "Developer"  # legacy mechanism, must be rejected\n',
         encoding="utf-8",

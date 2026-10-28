@@ -5,6 +5,8 @@ description: "根据算子需求生成 TileLang-Ascend 算子设计文档（DESI
 
 # TileLang-Ascend 算子设计文档生成
 
+迁移来源与阶段衔接遵循 [migration-source.md](../_shared/standards/migration-source.md)。harness 的 `source_context` 与 `source_op_path` 一起消费；先区分 public Op 与内部函数契约，再执行迁移分析。
+
 ## 1. 目标
 
 根据算子需求信息，生成一份完整的 TileLang-Ascend 算子设计文档（`DESIGN.md`），涵盖以下核心决策：

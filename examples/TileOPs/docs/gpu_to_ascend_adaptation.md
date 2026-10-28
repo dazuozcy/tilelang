@@ -77,13 +77,13 @@ A5 kernel 由 conductor Stage 1-3 以 Ascend 方言重实现。本文档列出�
 
 | # | GPU 原始代码 | A5 适配 | 说明 |
 |---|---|---|---|
-| A15 | `torch.cuda.Event` / CUPTI 计时 | `tilelang.profiler.do_bench(fn, backend="msprof")` 是**唯一**端到端时延口径（ms） | 周期级归因唯一在 npusim；`msprof_detail` 用于归因。禁止臆造时钟频率（代价模型是周期域的）。Tier 2 验证命令 `python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof`（内部为 do_bench 封装） |
+| A15 | `torch.cuda.Event` / CUPTI 计时 | `tilelang.profiler.do_bench(fn, backend="msprof")` 是**唯一**端到端时延口径（ms） | 周期级归因唯一在 npusim；`msprof_detail` 用于归因。禁止臆造时钟频率（代价模型是周期域的）。Tier 2 验证命令 `PYTHONPATH=src:.:../.. python -m tileops.reporting.cli run --op {op_name} --prof-mode msprof`（内部为 do_bench 封装） |
 
 ### 1.10 tileops 框架层（设备抽象）
 
 | # | GPU 原始代码 | A5 适配 | 说明 |
 |---|---|---|---|
-| A16 | `torch.cuda.is_available()` / `device_count()` / `current_device()` / `get_device_properties()` / `Event` / `synchronize()` / `empty_cache()` / `manual_seed_all()` 等直接调用 | 全部经 `tileops.device.get_device_backend()` 单一适配面 | 框架代码从不直接调用 `torch.cuda.*` 或 `torch.npu.*` |
+| A16 | `torch.cuda.is_available()` / `device_count()` / `current_device()` / `get_device_properties()` / `Event` / `synchronize()` / `empty_cache()` / `manual_seed_all()` 等直接调用 | 全部经 `tileops.backend.device.get_device_backend()` 单一适配面 | 框架代码从不直接调用 `torch.cuda.*` 或 `torch.npu.*` |
 | A17 | `supported_archs = [80, 86, 89, 90]`（CUDA SM 整数） | `supported_archs = ["Ascend950"]` | dav-3510 架构标识 |
 | A18 | `@torch.library.custom_op("top::...")` | `@torch.library.custom_op("ascend::...")` | 避免与 GPU 原工程命名空间冲突 |
 | A19 | autotune（`tilelang.autotuner`）/ `threads` / `npt` 执行参数 | autotune **全部移除**（启发式 config 选择）；`threads` 移除（reduction）或与 `npt` 合并为 `block_size`（elementwise） | 详见 `add-ascend-op` SKILL.md K8/K9/K11；GPU 的 `device_smem_budget` 语义改为 UB 预算（K6/A9） |
