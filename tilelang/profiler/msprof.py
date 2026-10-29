@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Callable
 
 import torch
 import tilelang
 import tilelang.language as T
+
+_logger = logging.getLogger(__name__)
 
 
 @tilelang.jit(out_idx=[], target="ascend")
@@ -42,6 +45,7 @@ def bench_with_msprof(
     cache: torch.Tensor,
     n_repeat: int,
     detailed: bool = False,
+    kernel_name: str | None = None,
 ) -> float:
     """Benchmark using torch_npu msprof timing."""
     import shutil
@@ -271,6 +275,22 @@ def bench_with_msprof(
             total += profile
         return total
 
+    def _select_kernel(profiles, kernel_name):
+        """Select one kernel by name; fall back to the sum when unmatched/ambiguous."""
+        if kernel_name in profiles:
+            return profiles[kernel_name]
+        matches = [p for n, p in profiles.items() if kernel_name in n]
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            return _sum_profiles(matches)
+        _logger.warning(
+            "bench_with_msprof: kernel_name=%r not found among %s; falling back to sum.",
+            kernel_name,
+            sorted(profiles.keys()),
+        )
+        return _sum_profiles(list(profiles.values()))
+
     cache_dtype = "int32" if cache.dtype == torch.int32 else "int8"
     cache_flush_kernel = get_msprof_cache_flush_kernel(int(cache.numel()), cache_dtype)
     cache_flush_kernel(cache)
@@ -300,7 +320,10 @@ def bench_with_msprof(
     if not kernel_profiles:
         raise RuntimeError("No profiled kernels remain after excluding the msprof flush kernel.")
 
-    profile = _sum_profiles(list(kernel_profiles.values()))
+    if kernel_name is not None:
+        profile = _select_kernel(kernel_profiles, kernel_name)
+    else:
+        profile = _sum_profiles(list(kernel_profiles.values()))
     if detailed:
         return profile
     return profile.dur_ns / 1e6

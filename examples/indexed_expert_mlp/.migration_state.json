@@ -1,0 +1,26 @@
+{
+  "family": "moe",
+  "functions": {
+    "_indexed_expert_gemm": {
+      "stage_state": null,
+      "status": "pending"
+    },
+    "_route_stats": {
+      "stage_state": null,
+      "status": "pending"
+    },
+    "_weighted_reduce": {
+      "stage_state": null,
+      "status": "pending"
+    }
+  },
+  "integration": {
+    "attempts": 0,
+    "status": null
+  },
+  "last_updated": "2026-10-28T15:33:24Z",
+  "meta_path": "examples/TileOPs/src/tileops/_kernels/moe/indexed_expert_mlp/.migration_meta.json",
+  "op_name": "indexed_expert_mlp",
+  "op_slug": "indexed_expert_mlp",
+  "phase": "DEV_LOOP"
+}

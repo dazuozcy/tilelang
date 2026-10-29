@@ -1,0 +1,19 @@
+{"id": "opdev-01", "prompt": "我要写一个 rmsnorm 算子，elementwise 加 reduction 混合，编程模式选 simt、simd 还是 mixed？有参考示例吗", "expected_skill": "tilelang-ascend-opdev"}
+{"id": "opdev-02", "prompt": "flash attention 要 Cube 侧 T.gemm 加 Vector 侧 softmax 后处理，MixedKernel(sids=2) 怎么划分 AIC/AIV 分工，参考哪个例子", "expected_skill": "tilelang-ascend-opdev"}
+{"id": "ascend-01", "prompt": "T.copy 从 GM 搬数据到 L1，ND2NZ 分形转换需要我手写吗，还是 pass 自动插入", "expected_skill": "tilelang-ascend"}
+{"id": "ascend-02", "prompt": "T.gemm 走 L1 输入路径时为什么要求 trans_B=True，GM 里权重的布局约定是什么", "expected_skill": "tilelang-ascend"}
+{"id": "ascend-03", "prompt": "GEMM 结果从 L0C 搬回 UB，T.dual_copy 和 T.copy 怎么选", "expected_skill": "tilelang-ascend"}
+{"id": "ascend-04", "prompt": "什么情况下需要手动 T.ascend_set_flag / T.ascend_wait_flag，AutoSchedule 不是会自动插同步吗", "expected_skill": "tilelang-ascend"}
+{"id": "ascend-05", "prompt": "测性能该用 do_bench(backend='msprof') 还是 npusim，各自的口径是什么", "expected_skill": "tilelang-ascend"}
+{"id": "debug-01", "prompt": "kernel 结果不对，想看生成的 AscendC 源码（get_kernel_source）和 IR Lower Trace 逐 pass 对比定位问题", "expected_skill": "tilelang-ascend-debug"}
+{"id": "debug-02", "prompt": "想在设备侧加 T.print 和 device_assert 断言，调试 ascend kernel 的精度异常", "expected_skill": "tilelang-ascend-debug"}
+{"id": "fixer-01", "prompt": "bisheng 编译报错了，--npu-arch=dav-3510，帮我按错误分类定位并给修复方案", "expected_skill": "tilelang-ascend-error-fixer"}
+{"id": "fixer-02", "prompt": "ACL 运行时 aclrtLaunchKernelWithHostArgs 启动 kernel 段错误，怎么排查修复", "expected_skill": "tilelang-ascend-error-fixer"}
+{"id": "design-01", "prompt": "新算子开发前要做算法调研四问和 DESIGN.md，编程模式与分核三要素怎么定", "expected_skill": "tilelang-op-design"}
+{"id": "develop-01", "prompt": "DESIGN.md 已冻结，按它实现 kernel 加 golden 加分层测试并跑精度四出口", "expected_skill": "tilelang-op-develop"}
+{"id": "desreview-01", "prompt": "检视这份 DESIGN.md，风险优先，重点核对分核三要素与片上容量预算", "expected_skill": "tilelang-design-review"}
+{"id": "optimize-01", "prompt": "算子精度已通过，进入 Stage 4 性能调优，用 do_bench(msprof) 采数据并维护 perf_records.jsonl", "expected_skill": "tilelang-op-optimize"}
+{"id": "review-01", "prompt": "请对这个 PR 做代码审查，优先看行为回归、同步 flag 配对和测试缺口", "expected_skill": "tilelang-review-skill"}
+{"id": "github-01", "prompt": "准备把分支提 PR 到上游 tile-ai/tilelang，给我完整的 commit push PR 流程", "expected_skill": "tilelang-github-operations"}
+{"id": "evolve-01", "prompt": "任务到终态了，从 RETROSPECTIVE 和 opt_log 蒸馏价值点，D/P/R/C 分类后合入或入队进化提案", "expected_skill": "tilelang-skill-evolution"}
+{"id": "semantic-01", "prompt": "TileLang 循环嵌套与 buffer 越界的语义校验规则在哪里定义，怎么加新检查", "expected_skill": "tilelang-semantic"}

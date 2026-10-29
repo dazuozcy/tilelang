@@ -41,6 +41,7 @@ def do_bench(
     device: int | torch.device | None = None,
     cache_size: int = 256,
     early_stop_baseline: float | None = None,
+    kernel_name: str | None = None,
 ) -> float | list[float]:
     """Benchmark a callable with GPU timing or host wall-clock timing.
 
@@ -70,6 +71,10 @@ def do_bench(
             Event timing also accepts MPS and NPU; wall timing accepts CPU, MPS, and NPU.
             Integer device indices select CUDA/HIP; use an NPU device object for NPU selection.
         cache_size: GPU L2 cache flush buffer size in MB (default: 256); ignored by "wall"
+        kernel_name: When set (msprof/msprof_detail backends), report only the
+            kernel whose name matches this string (exact match, else unique
+            substring, else fall back to summing all kernels). Default None sums
+            all kernels. Restores the pre-A5 ``--kernel-name`` filtering.
 
     Returns:
         Runtime in milliseconds (float) or list of quantile values if quantiles specified
@@ -141,6 +146,7 @@ def do_bench(
                 device_idx=device_idx,
                 cache_size=cache_size,
                 early_stop_baseline=early_stop_baseline,
+                kernel_name=kernel_name,
             )
 
     return _do_bench_impl(
@@ -156,6 +162,7 @@ def do_bench(
         device_idx=device_idx,
         cache_size=cache_size,
         early_stop_baseline=early_stop_baseline,
+        kernel_name=kernel_name,
     )
 
 
@@ -195,6 +202,7 @@ def _do_bench_impl(
     device_idx: int | torch.device | None,
     cache_size: int,
     early_stop_baseline: float | None = None,
+    kernel_name: str | None = None,
 ) -> float | list[float]:
     if backend in ("cupti", "cudagraph"):
         cache_device_type = torch.device(_cache_device(device_idx)).type
@@ -260,6 +268,6 @@ def _do_bench_impl(
     elif backend.startswith("msprof"):
         from .msprof import bench_with_msprof
 
-        return bench_with_msprof(fn, cache, n_repeat, detailed=backend == "msprof_detail")
+        return bench_with_msprof(fn, cache, n_repeat, detailed=backend == "msprof_detail", kernel_name=kernel_name)
     else:
         raise ValueError(f"Unknown profiler backend: {backend}")

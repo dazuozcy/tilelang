@@ -1,0 +1,5 @@
+{"action": "init", "migration_mode": "harness", "mode": "migration-harness", "phase_after": "SCAFFOLD", "phase_before": null, "scenario": "migration", "stage_plan": [0, 1, 2, 3, 5], "ts": "2026-10-28T15:32:56Z"}
+{"action": "start", "mode": "migration-harness", "phase_after": "SCAFFOLD", "phase_before": "SCAFFOLD", "stage": 0, "subagent": "tileops-scaffolder", "ts": "2026-10-28T15:33:00Z"}
+{"action": "complete", "duration_s": 15.0, "mode": "migration-harness", "phase_after": "DESIGN", "phase_before": "SCAFFOLD", "snapshot": [], "stage": 0, "subagent": "tileops-scaffolder", "ts": "2026-10-28T15:33:15Z", "verdict": "pass"}
+{"action": "migration-init", "functions": ["_route_stats", "_indexed_expert_gemm", "_weighted_reduce"], "phase_after": "DEV_LOOP", "phase_before": null, "ts": "2026-10-28T15:33:24Z"}
+{"action": "verify", "mode": "migration-harness", "phase_after": "DESIGN", "phase_before": null, "ts": "2026-10-28T15:33:31Z", "verdict": "ok"}

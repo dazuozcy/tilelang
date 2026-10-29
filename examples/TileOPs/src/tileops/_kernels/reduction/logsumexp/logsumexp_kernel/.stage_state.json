@@ -1,0 +1,58 @@
+{
+  "artifact_hashes": {
+    "examples/TileOPs/tileops/kernels/reduction/logsumexp/logsumexp_kernel/perf_opt/LogSumExpFwdOp.py": "41a71bf1f1ad78c2c187b0297fc4e64be4810ab1daa9a5df4cb9800b193f0fea",
+    "examples/TileOPs/tileops/kernels/reduction/logsumexp/logsumexp_kernel/perf_opt/perf_feedback.md": "8536a6e3addaf5d7f513cf8b2d0cdc769e5d8ce5225504af59feaa54be04ab2b"
+  },
+  "budget": {
+    "max_stage4_experiments": null,
+    "max_subagent_dispatches": null,
+    "max_wallclock_s": null
+  },
+  "current_stage": 4,
+  "design_md_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp/logsumexp_kernel/DESIGN.md",
+  "env_check_passed": false,
+  "failure_reason": null,
+  "final_artifact": "examples/TileOPs/tileops/kernels/reduction/logsumexp/logsumexp_kernel/perf_opt/LogSumExpFwdOp.py",
+  "kernel_opt_py_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp/logsumexp_kernel/perf_opt/LogSumExpFwdOp.py",
+  "kernel_py_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp/logsumexp_kernel",
+  "last_failure_reason": null,
+  "last_updated": "2026-10-17T02:48:20Z",
+  "max_retry": 3,
+  "migration_mode": null,
+  "operator_name": "LogSumExpFwdOp",
+  "perf_feedback": {
+    "action": "archive",
+    "path": "examples/TileOPs/tileops/kernels/reduction/logsumexp/logsumexp_kernel/perf_opt/perf_feedback.md"
+  },
+  "perf_iteration": {
+    "consecutive_no_improvement": 0,
+    "count": 2,
+    "last_improvement": 25.9
+  },
+  "perf_tuning_requested": null,
+  "phase": "DONE",
+  "project_name": "logsumexp",
+  "retry_count": 0,
+  "review_md_path": "examples/TileOPs/tileops/kernels/reduction/logsumexp/logsumexp_kernel/REVIEW.md",
+  "scenario": "optimize",
+  "stage3_failure_breakdown": {
+    "precision_fail": 0,
+    "runtime_fail": 0
+  },
+  "stage_plan": [
+    4
+  ],
+  "stage_retry_count": {
+    "0": 0,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0
+  },
+  "stage_status": {
+    "4": "completed"
+  },
+  "task_id": "logsumexp-LogSumExpFwdOp-20261017T010508Z",
+  "user_requirement": "optimize 场景试点：TileOPs 集成算子 LogSumExpFwdOp（reduction/logsumexp，双 kernel _logsumexp_kernel_single + _logsumexp_kernel_tiled，simt/auto_schedule yes，Stage 3 已 PRECISION_PASS 且集成 report 全绿）。目标 best_effort；benchmark 入口 examples/TileOPs/benchmarks/ops/bench_softmax.py::test_logsumexp_bench；关注 shape attn-weights-32k (32,32,32768) bf16 与 attn-weights-4k。另外要求最终 report 的 Ratio(%) 列（瓶颈管线占用率）有值"
+}

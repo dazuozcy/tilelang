@@ -1,0 +1,60 @@
+{
+  "artifact_hashes": {
+    "examples/logsumexp/_logsumexp_kernel_tiled/DESIGN.md": "694fceb626d9edfea848cd7ab237665200d7c22d9f971001afef1fcd5d5287c1",
+    "examples/logsumexp/_logsumexp_kernel_tiled/REVIEW.md": "f5873f2f45ee4ececc1588a43c0c5307a2f3414c65aeb0e5620db6f980d41429",
+    "examples/logsumexp/_logsumexp_kernel_tiled/_logsumexp_kernel_tiled.py": "25ed8277e59fb5a48155b15fd93347d40cc7024bcffeaf900515ccc367136a97"
+  },
+  "budget": {
+    "max_stage4_experiments": null,
+    "max_subagent_dispatches": null,
+    "max_wallclock_s": null
+  },
+  "current_stage": 3,
+  "design_md_path": "examples/logsumexp/_logsumexp_kernel_tiled/DESIGN.md",
+  "env_check_passed": false,
+  "failure_reason": null,
+  "final_artifact": "examples/logsumexp/_logsumexp_kernel_tiled/_logsumexp_kernel_tiled.py",
+  "kernel_opt_py_path": "examples/logsumexp/_logsumexp_kernel_tiled/perf_opt/_logsumexp_kernel_tiled.py",
+  "kernel_py_path": "examples/logsumexp/_logsumexp_kernel_tiled/_logsumexp_kernel_tiled.py",
+  "last_failure_reason": null,
+  "last_updated": "2026-10-16T12:11:12Z",
+  "max_retry": 3,
+  "migration_mode": "harness",
+  "operator_name": "_logsumexp_kernel_tiled",
+  "perf_feedback": null,
+  "perf_iteration": {
+    "consecutive_no_improvement": 0,
+    "count": 0,
+    "last_improvement": 0.0
+  },
+  "perf_tuning_requested": null,
+  "phase": "DONE",
+  "project_name": "logsumexp",
+  "retry_count": 0,
+  "review_md_path": "examples/logsumexp/_logsumexp_kernel_tiled/REVIEW.md",
+  "scenario": "migration",
+  "stage3_failure_breakdown": {
+    "precision_fail": 0,
+    "runtime_fail": 0
+  },
+  "stage_plan": [
+    1,
+    2,
+    3
+  ],
+  "stage_retry_count": {
+    "0": 0,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0
+  },
+  "stage_status": {
+    "1": "completed",
+    "2": "completed",
+    "3": "completed"
+  },
+  "task_id": "logsumexp-_logsumexp_kernel_tiled-20261016T102527Z",
+  "user_requirement": "迁移 logsumexp 算子 LogSumExpFwdOp（GPU 源仓 /home/z00875089/TileOPs-fork）——函数 _logsumexp_kernel_tiled（分块变体）。GPU 参考实现在 examples/TileOPs/tileops/kernels/reduction/logsumexp/_log_sum_exp_fwd_kernels.py；规格见 examples/TileOPs/tileops/manifest/reduction.yaml 的 LogSumExpFwdOp workloads；精度用例 examples/TileOPs/tests/ops/test_softmax.py；性能用例 examples/TileOPs/benchmarks/ops/bench_softmax.py"
+}

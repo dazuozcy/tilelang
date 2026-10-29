@@ -1,0 +1,60 @@
+{
+  "artifact_hashes": {
+    "examples/logsumexp_simd/_logsumexp_kernel_tiled/DESIGN.md": "fe41823a4dc6e96c197b05f3e942ba4167b9b2cd94bdd25051661417129fdabc",
+    "examples/logsumexp_simd/_logsumexp_kernel_tiled/REVIEW.md": "ab10bdab619021a233870a2f4d1e1969f98535eb9a386be69f292f2a0aee8a15",
+    "examples/logsumexp_simd/_logsumexp_kernel_tiled/_logsumexp_kernel_tiled.py": "54c358ff0ccb46cde2ce1de5312b932541ab99274974b2902f06e76b845feb80"
+  },
+  "budget": {
+    "max_stage4_experiments": null,
+    "max_subagent_dispatches": null,
+    "max_wallclock_s": null
+  },
+  "current_stage": 3,
+  "design_md_path": "examples/logsumexp_simd/_logsumexp_kernel_tiled/DESIGN.md",
+  "env_check_passed": false,
+  "failure_reason": null,
+  "final_artifact": "examples/logsumexp_simd/_logsumexp_kernel_tiled/_logsumexp_kernel_tiled.py",
+  "kernel_opt_py_path": "examples/logsumexp_simd/_logsumexp_kernel_tiled/perf_opt/_logsumexp_kernel_tiled.py",
+  "kernel_py_path": "examples/logsumexp_simd/_logsumexp_kernel_tiled/_logsumexp_kernel_tiled.py",
+  "last_failure_reason": null,
+  "last_updated": "2026-10-17T11:12:11Z",
+  "max_retry": 3,
+  "migration_mode": "harness",
+  "operator_name": "_logsumexp_kernel_tiled",
+  "perf_feedback": null,
+  "perf_iteration": {
+    "consecutive_no_improvement": 0,
+    "count": 0,
+    "last_improvement": 0.0
+  },
+  "perf_tuning_requested": null,
+  "phase": "DONE",
+  "project_name": "logsumexp_simd",
+  "retry_count": 1,
+  "review_md_path": "examples/logsumexp_simd/_logsumexp_kernel_tiled/REVIEW.md",
+  "scenario": "migration",
+  "stage3_failure_breakdown": {
+    "precision_fail": 0,
+    "runtime_fail": 0
+  },
+  "stage_plan": [
+    1,
+    2,
+    3
+  ],
+  "stage_retry_count": {
+    "0": 0,
+    "1": 1,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0
+  },
+  "stage_status": {
+    "1": "completed",
+    "2": "completed",
+    "3": "completed"
+  },
+  "task_id": "logsumexp_simd-_logsumexp_kernel_tiled-20261017T070635Z",
+  "user_requirement": "迁移 logsumexp_simd 算子 LogSumExpFwdOpSimd（GPU 源仓 /home/z00875089/TileOPs-fork 的 LogSumExpFwdOp 的 SIMD 模式独立变体）——函数 _logsumexp_kernel_tiled（分块变体，N 分 tile + online softmax 递推）。编程模式显式指定 simd（SimdVF，auto_schedule yes）。GPU 源算子实现 tileops/kernels/reduction/logsumexp.py（LogSumExpKernel），源函数 _logsumexp_kernel_tiled；规格见 examples/TileOPs/tileops/manifest/reduction.yaml 的 LogSumExpFwdOpSimd workloads；精度用例 examples/TileOPs/tests/ops/test_logsumexp_simd.py；性能用例 examples/TileOPs/benchmarks/ops/bench_logsumexp_simd.py。严禁改动现有 SIMT 版本（tileops/kernels/reduction/logsumexp/ 及 ascend::logsumexp_fwd）。"
+}

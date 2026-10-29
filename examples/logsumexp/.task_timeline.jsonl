@@ -1,0 +1,8 @@
+{"action": "migration-init", "functions": ["_logsumexp_kernel_single", "_logsumexp_kernel_tiled"], "phase_after": "DEV_LOOP", "phase_before": null, "ts": "2026-10-16T08:50:27Z"}
+{"action": "migration-func", "func": "_logsumexp_kernel_single", "phase_after": "DEV_LOOP", "phase_before": null, "status": "in_progress", "ts": "2026-10-16T08:50:40Z"}
+{"action": "migration-func", "func": "_logsumexp_kernel_single", "phase_after": "DEV_LOOP", "phase_before": null, "status": "done", "ts": "2026-10-16T10:25:27Z"}
+{"action": "migration-func", "func": "_logsumexp_kernel_tiled", "phase_after": "DEV_LOOP", "phase_before": null, "status": "in_progress", "ts": "2026-10-16T10:25:27Z"}
+{"action": "migration-func", "func": "_logsumexp_kernel_tiled", "phase_after": "DEV_LOOP", "phase_before": null, "status": "done", "ts": "2026-10-16T12:11:12Z"}
+{"action": "migration-phase", "phase_after": "INTEGRATE", "phase_before": "DEV_LOOP", "reason": null, "ts": "2026-10-16T12:11:12Z"}
+{"action": "migration-integrate", "phase_after": "INTEGRATE", "phase_before": null, "status": "pass", "ts": "2026-10-16T12:15:19Z"}
+{"action": "migration-phase", "phase_after": "DONE", "phase_before": "INTEGRATE", "reason": null, "ts": "2026-10-16T12:15:29Z"}

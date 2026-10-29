@@ -1,0 +1,618 @@
+{
+  "schema_version": 2,
+  "operator": "LogSumExpFwdOpSimd",
+  "status": "failed",
+  "metadata": {
+    "run_id": "20261017_204246_159826_LogSumExpFwdOpSimd",
+    "generated_at": "2026-10-17T20:46:02.267891+08:00",
+    "project_root": "/home/z00875089/tilelang-fork/examples/TileOPs",
+    "git_commit": "f487023f3aa3f000d35f5f98efdb711705fac167",
+    "python": "3.11.16",
+    "platform": "Linux-5.4.0-216-generic-x86_64-with-glibc2.31",
+    "test_file": "tests/ops/test_logsumexp_simd.py",
+    "benchmark_file": "benchmarks/ops/bench_logsumexp_simd.py",
+    "prof_mode_requested": "msprof",
+    "commands": {
+      "correctness": [
+        "/home/l00970450/.conda/envs/tilelang/bin/python",
+        "-m",
+        "pytest",
+        "tests/ops/test_logsumexp_simd.py",
+        "-sv",
+        "--junitxml=/home/z00875089/tilelang-fork/examples/TileOPs/reports/tileops/20261017_204246_159826_LogSumExpFwdOpSimd/pytest/correctness.xml"
+      ],
+      "benchmark": null
+    },
+    "exit_codes": {
+      "correctness": 1,
+      "benchmark": null
+    }
+  },
+  "setup": {
+    "metadata": {
+      "framework": "TileOPs Reporting 0.1.0",
+      "date": "2026-10-17T20:46:02.267891+08:00",
+      "evaluation_scope": "LogSumExpFwdOpSimd",
+      "benchmark": "TileOPs pytest operator suite",
+      "profiler": "msprof",
+      "run_id": "20261017_204246_159826_LogSumExpFwdOpSimd",
+      "git_commit": "f487023f3aa3f000d35f5f98efdb711705fac167",
+      "correctness_target": "tests/ops/test_logsumexp_simd.py",
+      "benchmark_target": "benchmarks/ops/bench_logsumexp_simd.py"
+    },
+    "environment": {
+      "npu": "Ascend950PR_9579 x 2",
+      "cpu": "x86_64",
+      "cann": "9.2.0",
+      "driver": "25.7.0",
+      "pytorch": "2.10.0+cpu",
+      "pytorch_npu": "2.10.0.post5.dev20260815",
+      "tilelang": null,
+      "python": "3.11.16",
+      "os": "Linux-5.4.0-216-generic-x86_64-with-glibc2.31",
+      "container": null
+    }
+  },
+  "summary": {
+    "correctness_passed": false,
+    "correctness_tests": 45,
+    "correctness_failed": 1,
+    "operator_count": 1,
+    "total_cases": 45,
+    "passed_cases": 44,
+    "failed_cases": 1,
+    "pass_rate": 0.9777777777777777,
+    "benchmark_requested": false,
+    "benchmark_passed": false,
+    "benchmark_tests": 0,
+    "benchmark_failed": 0,
+    "case_count": 0,
+    "msprof_case_count": 0,
+    "profiler_fallback_count": 0
+  },
+  "correctness": {
+    "path": "/home/z00875089/tilelang-fork/examples/TileOPs/reports/tileops/20261017_204246_159826_LogSumExpFwdOpSimd/pytest/correctness.xml",
+    "status": "failed",
+    "tests": 45,
+    "passed": 44,
+    "failed": 1,
+    "errors": 0,
+    "skipped": 0,
+    "cases": [
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape0--1-dtype0]",
+        "name": "test_logsumexp_simd_op[shape0--1-dtype0]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 175.397,
+        "outcome": "failed",
+        "message": "RuntimeError: LazySetDevice:../torch_npu/csrc/core/npu/NPUFunctions.cpp:481 NPU function error: err, error code is 507033\n[ERROR] 2026-10-17-20:45:44 (PID:2293492, Device:0, RankID:-1) ERR00100 PTA call acl api failed\n[Error]: Failed to start the device. \n        Rectify the fault based on the error information in the ascend log.\n[PID: 2293492] 2026-10-17-20:45:31.280.628 Inner_Error_Device_Subprocess_Startup_Timeout(E39007): Starting a subprocess on the device timed out.\n        Possible Cause: 1.Failed to start the subprocess. 2. The HDC link is faulty.\n        Solution: Obtain the host and device logs, and contact technical support at https://www.hiascend.com/support.\nTraceBack (most recent call last):\n        tsd client wait response fail, hostpid:2293492, receive device response data failed, check hdc service.[FUNC:WaitRsp][FILE:tsd_process_controller.cpp][LINE:196]\n        Starting a subprocess on the device timed out.\n        TsdOpen failed. devId=0, tdt error=31.[FUNC:PrintfTsdError][FILE:runtime.cc][LINE:2146]\n        Check param failed, dev can not be NULL![FUNC:DeviceRetain][FILE:runtime.cc][LINE:3186]\n        rtSetDevice execution failed, reason=device retain error[FUNC:FuncErrorReason][FILE:error_message_manage.cc][LINE:72]",
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape1--1-dtype1]",
+        "name": "test_logsumexp_simd_op[shape1--1-dtype1]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 1.332,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape2--1-dtype2]",
+        "name": "test_logsumexp_simd_op[shape2--1-dtype2]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.095,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape3--1-dtype3]",
+        "name": "test_logsumexp_simd_op[shape3--1-dtype3]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.093,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape4--1-dtype4]",
+        "name": "test_logsumexp_simd_op[shape4--1-dtype4]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.102,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape5--1-dtype5]",
+        "name": "test_logsumexp_simd_op[shape5--1-dtype5]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.1,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape6--1-dtype6]",
+        "name": "test_logsumexp_simd_op[shape6--1-dtype6]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.098,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape7--1-dtype7]",
+        "name": "test_logsumexp_simd_op[shape7--1-dtype7]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.102,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape8--1-dtype8]",
+        "name": "test_logsumexp_simd_op[shape8--1-dtype8]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.101,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape9--1-dtype9]",
+        "name": "test_logsumexp_simd_op[shape9--1-dtype9]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.209,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape10--1-dtype10]",
+        "name": "test_logsumexp_simd_op[shape10--1-dtype10]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.002,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape11--1-dtype11]",
+        "name": "test_logsumexp_simd_op[shape11--1-dtype11]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape12--1-dtype12]",
+        "name": "test_logsumexp_simd_op[shape12--1-dtype12]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.086,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape13--1-dtype13]",
+        "name": "test_logsumexp_simd_op[shape13--1-dtype13]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 3.011,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape14--1-dtype14]",
+        "name": "test_logsumexp_simd_op[shape14--1-dtype14]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 2.987,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape15--1-dtype15]",
+        "name": "test_logsumexp_simd_op[shape15--1-dtype15]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.109,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape16--1-dtype16]",
+        "name": "test_logsumexp_simd_op[shape16--1-dtype16]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 3.026,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape17--1-dtype17]",
+        "name": "test_logsumexp_simd_op[shape17--1-dtype17]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.07,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape18--1-dtype18]",
+        "name": "test_logsumexp_simd_op[shape18--1-dtype18]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.089,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape19--1-dtype19]",
+        "name": "test_logsumexp_simd_op[shape19--1-dtype19]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.254,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape20-0-dtype20]",
+        "name": "test_logsumexp_simd_op[shape20-0-dtype20]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.006,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape21-0-dtype21]",
+        "name": "test_logsumexp_simd_op[shape21-0-dtype21]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.025,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape22-0-dtype22]",
+        "name": "test_logsumexp_simd_op[shape22-0-dtype22]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape23-1-dtype23]",
+        "name": "test_logsumexp_simd_op[shape23-1-dtype23]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "4.77e-07"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape24-1-dtype24]",
+        "name": "test_logsumexp_simd_op[shape24-1-dtype24]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_op[shape25-1-dtype25]",
+        "name": "test_logsumexp_simd_op[shape25-1-dtype25]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {
+          "op": "LogSumExpFwdOpSimd",
+          "op_module": "tileops.ops.reduction.logsumexp_simd",
+          "max_abs_err": "0.00e+00"
+        }
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_keepdim[shape0--1-dtype0]",
+        "name": "test_logsumexp_simd_keepdim[shape0--1-dtype0]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.002,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_keepdim[shape1--1-dtype1]",
+        "name": "test_logsumexp_simd_keepdim[shape1--1-dtype1]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_keepdim[shape2--1-dtype2]",
+        "name": "test_logsumexp_simd_keepdim[shape2--1-dtype2]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_keepdim[shape3-0-dtype3]",
+        "name": "test_logsumexp_simd_keepdim[shape3-0-dtype3]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_keepdim[shape4-0-dtype4]",
+        "name": "test_logsumexp_simd_keepdim[shape4-0-dtype4]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_keepdim[shape5-1-dtype5]",
+        "name": "test_logsumexp_simd_keepdim[shape5-1-dtype5]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_non_contiguous[shape0-dtype0]",
+        "name": "test_logsumexp_simd_non_contiguous[shape0-dtype0]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.004,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_non_contiguous[shape1-dtype1]",
+        "name": "test_logsumexp_simd_non_contiguous[shape1-dtype1]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.002,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_non_contiguous[shape2-dtype2]",
+        "name": "test_logsumexp_simd_non_contiguous[shape2-dtype2]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.002,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_non_contiguous[shape3-dtype3]",
+        "name": "test_logsumexp_simd_non_contiguous[shape3-dtype3]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_non_contiguous[shape4-dtype4]",
+        "name": "test_logsumexp_simd_non_contiguous[shape4-dtype4]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_non_contiguous[shape5-dtype5]",
+        "name": "test_logsumexp_simd_non_contiguous[shape5-dtype5]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.001,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_1d[256-dtype0]",
+        "name": "test_logsumexp_simd_1d[256-dtype0]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.067,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_1d[256-dtype1]",
+        "name": "test_logsumexp_simd_1d[256-dtype1]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.064,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_1d[256-dtype2]",
+        "name": "test_logsumexp_simd_1d[256-dtype2]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 2.727,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_1d[300-dtype3]",
+        "name": "test_logsumexp_simd_1d[300-dtype3]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.093,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_1d[300-dtype4]",
+        "name": "test_logsumexp_simd_1d[300-dtype4]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.06,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_1d[300-dtype5]",
+        "name": "test_logsumexp_simd_1d[300-dtype5]",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.078,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      },
+      {
+        "nodeid": "tests.ops.test_logsumexp_simd::test_logsumexp_simd_accepts_multidim",
+        "name": "test_logsumexp_simd_accepts_multidim",
+        "classname": "tests.ops.test_logsumexp_simd",
+        "time_s": 0.085,
+        "outcome": "passed",
+        "message": null,
+        "properties": {}
+      }
+    ]
+  },
+  "benchmark_tests": {
+    "status": "skipped",
+    "tests": 0,
+    "passed": 0,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "cases": []
+  },
+  "performance": {
+    "source": null,
+    "requested_prof_mode": null,
+    "cases": []
+  },
+  "operators": [
+    {
+      "operator": "LogSumExpFwdOpSimd",
+      "family": "reduction",
+      "cases": 45,
+      "passed": 44,
+      "failed": 1,
+      "pass_rate": 0.9777777777777777,
+      "avg_max_abs_err": 7.632000000000001e-08,
+      "max_abs_err": 4.77e-07,
+      "performance_cases": 0,
+      "ratio_range": null
+    }
+  ],
+  "warnings": []
+}

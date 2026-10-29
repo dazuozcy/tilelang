@@ -1,0 +1,33 @@
+{
+  "source_layout": "src",
+  "gpu_repo_root": "/home/zuo/code/TileOPs",
+  "gpu_source": {
+    "manifest_path": "src/tileops/manifest/spec/moe.yaml",
+    "op_path": "src/tileops/_ops/moe/routed_expert/indexed_routed_expert.py",
+    "kernel_bindings": [
+      {
+        "path": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+        "class": "IndexedRouteStatsKernel"
+      },
+      {
+        "path": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+        "class": "IndexedExpertGateUpKernel"
+      },
+      {
+        "path": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+        "class": "IndexedExpertDownKernel"
+      },
+      {
+        "path": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+        "class": "IndexedWeightedReduceKernel"
+      }
+    ],
+    "function_sources": {
+      "_route_stats": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+      "_indexed_expert_gemm": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+      "_weighted_reduce": "src/tileops/_kernels/moe/indexed_expert_gemm.py"
+    },
+    "revision": "3979278e2da6ac4fa84d8c7c800dec64ea9c0425",
+    "dirty": false
+  }
+}

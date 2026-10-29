@@ -1,0 +1,19 @@
+{
+  "dur_us": 69.9742,
+  "aiv_total_cycles": 4627912,
+  "aic_total_cycles": 0,
+  "pipes": {
+    "aic_mad": 0.0,
+    "aic_scalar": 0.0,
+    "aic_mte1": 0.0,
+    "aic_mte2": 0.0,
+    "aic_mte3": 0.0,
+    "aic_fixpipe": 0.0,
+    "aiv_vec": 0.4377916027679666,
+    "aiv_scalar": 0.025132894963356245,
+    "aiv_mte2": 0.5022380608344698,
+    "aiv_mte3": 0.6892970881826781
+  },
+  "bottleneck_pipe": "aiv_mte3",
+  "bottleneck_ratio": 0.6892970881826781
+}

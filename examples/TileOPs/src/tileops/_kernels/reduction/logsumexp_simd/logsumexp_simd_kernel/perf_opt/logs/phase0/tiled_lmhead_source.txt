@@ -1,0 +1,79 @@
+Loading tilelang libs from dev root: /home/z00875089/tilelang-fork/build
+#include <tl_templates/ascend/common.h>
+#include <tl_templates/ascend/debug.h>
+#include <tl_templates/ascend/simd_inst.h>
+__simd_vf__ inline void main_kernel_simd_vf_0(__ubuf__ uint8_t* buf_dyn_shmem) {
+  vector_bool v = asc_create_mask_b32(PAT_ALL);
+  auto neg_inf = simd_inst::vdup<float>(tl::limits::kFloatNInf, v, MODE_ZEROING);
+  auto zero_f = simd_inst::vdup<float>(float(0x0p+0f/*0.000000e+00*/), v, MODE_ZEROING);
+  vector_bool one_pt32 = asc_create_mask_b32(PAT_VL1);
+  simd_inst::vsts_1st(neg_inf, (__ubuf__ float*)(&(((__ubuf__ float*)buf_dyn_shmem)[25600])), 0, one_pt32);
+  simd_inst::vsts_1st(zero_f, (__ubuf__ float*)(&(((__ubuf__ float*)buf_dyn_shmem)[25601])), 0, one_pt32);
+  simd_inst::mem_bar(VST_VLD);
+}
+
+__simd_vf__ inline void main_kernel_simd_vf_1(__ubuf__ uint8_t* buf_dyn_shmem, int32_t x_ub_version_counter_1) {
+  vector_f32 acc;
+  vector_f32 accs;
+  vector_bool v = asc_create_mask_b32(PAT_ALL);
+  auto neg_inf = simd_inst::vdup<float>(tl::limits::kFloatNInf, v, MODE_ZEROING);
+  auto zero_f = simd_inst::vdup<float>(float(0x0p+0f/*0.000000e+00*/), v, MODE_ZEROING);
+  vector_bool one_pt32 = asc_create_mask_b32(PAT_VL1);
+  auto m_run_old = simd_inst::vlds_brc_elem<float>((__ubuf__ float*)(&(((__ubuf__ float*)buf_dyn_shmem)[25600])), 0);
+  auto s_run_old = simd_inst::vlds_brc_elem<float>((__ubuf__ float*)(&(((__ubuf__ float*)buf_dyn_shmem)[25601])), 0);
+  acc = neg_inf;
+  for (int32_t g = 0; g < 400; ++g) {
+    vector_bool v_1 = asc_create_mask_b16(PAT_ALL);
+    acc = simd_inst::vmax(acc, simd_inst::vcvt<float>(simd_inst::vlds_unpack<half>((__ubuf__ half*)(&(((__ubuf__ half*)buf_dyn_shmem)[(((x_ub_version_counter_1 & 1) * 25600) + (g * 64))])), 0), v_1, PART_EVEN, MODE_ZEROING), v, MODE_ZEROING);
+  }
+  auto m_c_brc = simd_inst::vdupv(simd_inst::vcmax(acc, v, MODE_ZEROING), v, POS_LOWEST, MODE_ZEROING);
+  auto m_run_new = simd_inst::vmax(m_run_old, m_c_brc, v, MODE_ZEROING);
+  accs = zero_f;
+  for (int32_t g_1 = 0; g_1 < 400; ++g_1) {
+    vector_bool v_2 = asc_create_mask_b16(PAT_ALL);
+    accs = simd_inst::vadd(accs, simd_inst::vexpdif(simd_inst::vcvt<float>(simd_inst::vlds_unpack<half>((__ubuf__ half*)(&(((__ubuf__ half*)buf_dyn_shmem)[(((x_ub_version_counter_1 & 1) * 25600) + (g_1 * 64))])), 0), v_2, PART_EVEN, MODE_ZEROING), m_run_new, v), v, MODE_ZEROING);
+  }
+  auto s_c = simd_inst::vcadd(accs, v, MODE_ZEROING);
+  auto s_run_new = simd_inst::vadd(simd_inst::vmul(s_run_old, simd_inst::vexpdif(m_run_old, m_run_new, v), v, MODE_ZEROING), s_c, v, MODE_ZEROING);
+  simd_inst::vsts_1st(m_run_new, (__ubuf__ float*)(&(((__ubuf__ float*)buf_dyn_shmem)[25600])), 0, one_pt32);
+  simd_inst::vsts_1st(s_run_new, (__ubuf__ float*)(&(((__ubuf__ float*)buf_dyn_shmem)[25601])), 0, one_pt32);
+  simd_inst::mem_bar(VST_VLD);
+}
+
+__simd_vf__ inline void main_kernel_simd_vf_2(__ubuf__ uint8_t* buf_dyn_shmem) {
+  auto m_final = simd_inst::vlds_brc_elem<float>((__ubuf__ float*)(&(((__ubuf__ float*)buf_dyn_shmem)[25600])), 0);
+  auto s_final = simd_inst::vlds_brc_elem<float>((__ubuf__ float*)(&(((__ubuf__ float*)buf_dyn_shmem)[25601])), 0);
+  vector_bool v = asc_create_mask_b32(PAT_ALL);
+  auto out = simd_inst::vadd(m_final, simd_inst::vln(s_final, v, MODE_ZEROING), v, MODE_ZEROING);
+  vector_bool one_pt = asc_create_mask_b16(PAT_VL1);
+  vector_bool v_1 = asc_create_mask_b16(PAT_ALL);
+  auto out_h = simd_inst::vcvt<half>(out, v_1, ROUND_R, RS_ENABLE, PART_EVEN, MODE_ZEROING);
+  simd_inst::vsts_1st(out_h, (__ubuf__ half*)(&(((__ubuf__ half*)buf_dyn_shmem)[51216])), 0, one_pt);
+}
+
+extern "C" __global__ __vector__ void main_kernel(__gm__ half* x, __gm__ half* y) {
+  asc_init();
+  __ubuf__ uint8_t *buf_dyn_shmem = (__ubuf__ uint8_t *)0;
+  int32_t x_ub_version_counter_1 = 0;
+  asc_sync_notify(PIPE_V, PIPE_MTE2, static_cast<event_t>(0));
+  asc_sync_notify(PIPE_V, PIPE_MTE2, static_cast<event_t>(1));
+  x_ub_version_counter_1 = 0;
+  if (((int32_t)block_idx) < 4) {
+    main_kernel_simd_vf_0(buf_dyn_shmem);
+    for (int32_t c = 0; c < 4; ++c) {
+      asc_sync_wait(PIPE_V, PIPE_MTE2, static_cast<event_t>((x_ub_version_counter_1 & 1)));
+      asc_copy_gm2ub_align((__ubuf__ uint8_t*)((&(((__ubuf__ half*)buf_dyn_shmem)[((x_ub_version_counter_1 & 1) * 25600)]))), (__gm__ uint8_t*)((&(x[((((int32_t)block_idx) * 102400) + (c * 25600))]))), 1, 51200, 0, 0, 0, static_cast<asc_load_l2_cache_mode>(0), 51200, 51200);
+      asc_sync_notify(PIPE_MTE2, PIPE_V, static_cast<event_t>((x_ub_version_counter_1 & 1)));
+      asc_sync_wait(PIPE_MTE2, PIPE_V, static_cast<event_t>((x_ub_version_counter_1 & 1)));
+      main_kernel_simd_vf_1(buf_dyn_shmem, x_ub_version_counter_1);
+      asc_sync_notify(PIPE_V, PIPE_MTE2, static_cast<event_t>((x_ub_version_counter_1 & 1)));
+      x_ub_version_counter_1 = (x_ub_version_counter_1 + 1);
+    }
+    main_kernel_simd_vf_2(buf_dyn_shmem);
+    asc_sync_notify(PIPE_V, PIPE_MTE3, static_cast<event_t>(0));
+    asc_sync_wait(PIPE_V, PIPE_MTE3, static_cast<event_t>(0));
+    asc_copy_ub2gm_align((__gm__ uint8_t*)((&(y[((int32_t)block_idx)]))), (__ubuf__ uint8_t*)((&(((__ubuf__ half*)buf_dyn_shmem)[51216]))), 1, 2, static_cast<asc_store_l2_cache_mode>(4), 2, 2);
+  }
+  asc_sync_wait(PIPE_V, PIPE_MTE2, static_cast<event_t>(0));
+  asc_sync_wait(PIPE_V, PIPE_MTE2, static_cast<event_t>(1));
+}

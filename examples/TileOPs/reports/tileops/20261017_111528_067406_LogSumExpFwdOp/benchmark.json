@@ -1,0 +1,666 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-17T11:17:44.618023+08:00",
+  "profiling_mode_requested": "msprof",
+  "environment": [
+    "- **Torch version**: 2.10.0+cpu",
+    "- **torch_npu version**: 2.10.0.post5.dev20260815",
+    "- **NPU model**: Ascend950PR_9579",
+    "- **NPU count**: 2"
+  ],
+  "records": [
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-99d54b76f51a",
+      "config": {
+        "block_m": 16,
+        "tile_n": 0
+      },
+      "label": "attn-weights-4k",
+      "params": {
+        "dtype": "float16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          32,
+          32,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 1.8937,
+        "Computility(TOps/s)": 11.8272,
+        "GM_Roofline_BW(TB/s)": 1.6,
+        "Perf(TOps/s)": 1.3365,
+        "Ratio(%)": 44.11,
+        "bandwidth_tbs": 0.3903233639042453,
+        "latency_us": 21.496678846153845,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_roofline_bin",
+          "roofline_freq_mhz": 1650.0,
+          "roofline_op": "main_kernel"
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.780456186747273
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-9f682aff82b2",
+      "config": {
+        "block_m": 16,
+        "tile_n": 0
+      },
+      "label": "attn-weights-4k",
+      "params": {
+        "dim": -1,
+        "dtype": "float16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 60.66,
+          "bandwidth_tbs": 0.1701745531349275,
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_us": 49.30617325227963,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 2918910,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_mte2",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.6066,
+            "aiv_mte3": 0.1931,
+            "aiv_scalar": 0.2857,
+            "aiv_vec": 0.3967
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.34026603350776813
+        },
+        "shape": [
+          32,
+          32,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 60.66,
+        "bandwidth_tbs": 0.1701745531349275,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 49.30617325227963,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 2918910,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.6066,
+          "aiv_mte3": 0.1931,
+          "aiv_scalar": 0.2857,
+          "aiv_vec": 0.3967
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.34026603350776813
+      },
+      "tag": "torch"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-e9076efbddf0",
+      "config": {
+        "block_m": 16,
+        "tile_n": 0
+      },
+      "label": "attn-weights-4k",
+      "params": {
+        "dtype": "bfloat16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          32,
+          32,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.2021,
+        "Computility(TOps/s)": 11.8272,
+        "GM_Roofline_BW(TB/s)": 1.6,
+        "Perf(TOps/s)": 1.2698,
+        "Ratio(%)": 36.04,
+        "bandwidth_tbs": 0.3903887763501665,
+        "latency_us": 21.49307692307692,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_roofline_bin",
+          "roofline_freq_mhz": 1650.0,
+          "roofline_op": "main_kernel"
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.7805869797072404
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-7ebead01c886",
+      "config": {
+        "block_m": 16,
+        "tile_n": 0
+      },
+      "label": "attn-weights-4k",
+      "params": {
+        "dim": -1,
+        "dtype": "bfloat16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 64.75,
+          "bandwidth_tbs": 0.170293710695212,
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_us": 49.271672839506174,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 3307204,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_mte2",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.6475,
+            "aiv_mte3": 0.2973,
+            "aiv_scalar": 0.2386,
+            "aiv_vec": 0.3534
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.3405042904601359
+        },
+        "shape": [
+          32,
+          32,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 64.75,
+        "bandwidth_tbs": 0.170293710695212,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 49.271672839506174,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 3307204,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.6475,
+          "aiv_mte3": 0.2973,
+          "aiv_scalar": 0.2386,
+          "aiv_vec": 0.3534
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.3405042904601359
+      },
+      "tag": "torch"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-be7664371b7d",
+      "config": {
+        "block_m": 1,
+        "tile_n": 16384
+      },
+      "label": "attn-weights-32k",
+      "params": {
+        "dtype": "bfloat16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          32,
+          32,
+          32768
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 1.745,
+        "Computility(TOps/s)": 11.8272,
+        "GM_Roofline_BW(TB/s)": 1.6,
+        "Perf(TOps/s)": 2.1925,
+        "Ratio(%)": 78.53,
+        "bandwidth_tbs": 0.7686503255459819,
+        "latency_us": 87.31006775067752,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_roofline_bin",
+          "roofline_freq_mhz": 1650.0,
+          "roofline_op": "main_kernel"
+        },
+        "prof_mode": "msprof",
+        "tflops": 1.5372537378309215
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-efc3672f0086",
+      "config": {
+        "block_m": 1,
+        "tile_n": 16384
+      },
+      "label": "attn-weights-32k",
+      "params": {
+        "dim": -1,
+        "dtype": "bfloat16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 93.67,
+          "bandwidth_tbs": 0.16653205547925112,
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_us": 402.99095454545454,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 32103962,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_mte2",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.9367,
+            "aiv_mte3": 0.5266,
+            "aiv_scalar": 0.1022,
+            "aiv_vec": 0.1819
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.3330539469586561
+        },
+        "shape": [
+          32,
+          32,
+          32768
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 93.67,
+        "bandwidth_tbs": 0.16653205547925112,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 402.99095454545454,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 32103962,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.9367,
+          "aiv_mte3": 0.5266,
+          "aiv_scalar": 0.1022,
+          "aiv_vec": 0.1819
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.3330539469586561
+      },
+      "tag": "torch"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-d6942e0a39f6",
+      "config": {
+        "block_m": 1,
+        "tile_n": 25600
+      },
+      "label": "lm-head-logits",
+      "params": {
+        "dtype": "float16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          4,
+          102400
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 1.8347,
+        "Computility(TOps/s)": 11.8272,
+        "GM_Roofline_BW(TB/s)": 1.6,
+        "Perf(TOps/s)": 0.1465,
+        "Ratio(%)": 4.99,
+        "bandwidth_tbs": 0.04629487831545842,
+        "latency_us": 17.695434782608697,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_roofline_bin",
+          "roofline_freq_mhz": 1650.0,
+          "roofline_op": "main_kernel"
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.0925888524429047
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-f7b7bafd9028",
+      "config": {
+        "block_m": 1,
+        "tile_n": 25600
+      },
+      "label": "lm-head-logits",
+      "params": {
+        "dim": -1,
+        "dtype": "float16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 31.27,
+          "bandwidth_tbs": 0.027179792304884935,
+          "bottleneck_pipe": "aiv_scalar",
+          "latency_us": 30.140333333333327,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 1319751,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_scalar",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.2413,
+            "aiv_mte3": 0.0655,
+            "aiv_scalar": 0.3127,
+            "aiv_vec": 0.0935
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.0543590537596355
+        },
+        "shape": [
+          4,
+          102400
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 31.27,
+        "bandwidth_tbs": 0.027179792304884935,
+        "bottleneck_pipe": "aiv_scalar",
+        "latency_us": 30.140333333333327,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 1319751,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_scalar",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.2413,
+          "aiv_mte3": 0.0655,
+          "aiv_scalar": 0.3127,
+          "aiv_vec": 0.0935
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.0543590537596355
+      },
+      "tag": "torch"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-435bf24c91dd",
+      "config": {
+        "block_m": 1,
+        "tile_n": 25600
+      },
+      "label": "lm-head-logits",
+      "params": {
+        "dtype": "bfloat16",
+        "op_params": {
+          "dim": -1
+        },
+        "shape": [
+          4,
+          102400
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 1.8516,
+        "Computility(TOps/s)": 11.8272,
+        "GM_Roofline_BW(TB/s)": 1.6,
+        "Perf(TOps/s)": 0.1474,
+        "Ratio(%)": 4.98,
+        "bandwidth_tbs": 0.046350246698653993,
+        "latency_us": 17.674296435272044,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_roofline_bin",
+          "roofline_freq_mhz": 1650.0,
+          "roofline_op": "main_kernel"
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.09269958812789268
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-d94fc0fa5538",
+      "config": {
+        "block_m": 1,
+        "tile_n": 25600
+      },
+      "label": "lm-head-logits",
+      "params": {
+        "dim": -1,
+        "dtype": "bfloat16",
+        "keepdim": false,
+        "op_params": {
+          "dim": -1
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 31.21,
+          "bandwidth_tbs": 0.027252649918098962,
+          "bottleneck_pipe": "aiv_scalar",
+          "latency_us": 30.059755747126434,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 1302868,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_scalar",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.2511,
+            "aiv_mte3": 0.0665,
+            "aiv_scalar": 0.3121,
+            "aiv_vec": 0.0973
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.05450476756307719
+        },
+        "shape": [
+          4,
+          102400
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 31.21,
+        "bandwidth_tbs": 0.027252649918098962,
+        "bottleneck_pipe": "aiv_scalar",
+        "latency_us": 30.059755747126434,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 1302868,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_scalar",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.2511,
+          "aiv_mte3": 0.0665,
+          "aiv_scalar": 0.3121,
+          "aiv_vec": 0.0973
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.05450476756307719
+      },
+      "tag": "torch"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-6b30e6773334",
+      "config": {
+        "block_m": 4,
+        "tile_n": 0
+      },
+      "label": "3d-multidim-reduce",
+      "params": {
+        "dtype": "float16",
+        "op_params": {
+          "dim": [
+            0,
+            2
+          ]
+        },
+        "shape": [
+          4,
+          128,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.1385,
+        "Computility(TOps/s)": 11.8272,
+        "GM_Roofline_BW(TB/s)": 1.6,
+        "Perf(TOps/s)": 0.9659,
+        "Ratio(%)": 28.23,
+        "bandwidth_tbs": 0.20579826621486907,
+        "latency_us": 20.381901544401547,
+        "msprof": {
+          "backend": "msprof",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_roofline_bin",
+          "roofline_freq_mhz": 1650.0,
+          "roofline_op": "main_kernel"
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.4115714121042923
+      },
+      "tag": "tileops"
+    },
+    {
+      "operator": "LogSumExpFwdOp",
+      "case_id": "LogSumExpFwdOp-f9ba10975d82",
+      "config": {
+        "block_m": 4,
+        "tile_n": 0
+      },
+      "label": "3d-multidim-reduce",
+      "params": {
+        "dim": [
+          0,
+          2
+        ],
+        "dtype": "float16",
+        "keepdim": false,
+        "op_params": {
+          "dim": [
+            0,
+            2
+          ]
+        },
+        "result_bl": {
+          "AI(Ops/Byte)": 2.0,
+          "Ratio(%)": 46.42,
+          "bandwidth_tbs": 0.10823004689079728,
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_us": 38.75596583850931,
+          "msprof": {
+            "aic_total_cycles": 0,
+            "aiv_total_cycles": 2111585,
+            "backend": "msprof",
+            "bottleneck_pipe": "aiv_mte2",
+            "latency_source": "do_bench(msprof)",
+            "ratio_source": "msprof_detail_pipe"
+          },
+          "pipe_utilization": {
+            "aiv_mte2": 0.4642,
+            "aiv_mte3": 0.1349,
+            "aiv_scalar": 0.3041,
+            "aiv_vec": 0.1683
+          },
+          "prof_mode": "msprof",
+          "tflops": 0.21644688291227615
+        },
+        "shape": [
+          4,
+          128,
+          4096
+        ]
+      },
+      "result": {
+        "AI(Ops/Byte)": 2.0,
+        "Ratio(%)": 46.42,
+        "bandwidth_tbs": 0.10823004689079728,
+        "bottleneck_pipe": "aiv_mte2",
+        "latency_us": 38.75596583850931,
+        "msprof": {
+          "aic_total_cycles": 0,
+          "aiv_total_cycles": 2111585,
+          "backend": "msprof",
+          "bottleneck_pipe": "aiv_mte2",
+          "latency_source": "do_bench(msprof)",
+          "ratio_source": "msprof_detail_pipe"
+        },
+        "pipe_utilization": {
+          "aiv_mte2": 0.4642,
+          "aiv_mte3": 0.1349,
+          "aiv_scalar": 0.3041,
+          "aiv_vec": 0.1683
+        },
+        "prof_mode": "msprof",
+        "tflops": 0.21644688291227615
+      },
+      "tag": "torch"
+    }
+  ]
+}

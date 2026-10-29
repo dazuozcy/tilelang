@@ -1,0 +1,31 @@
+Issue template hints for tilelang-fork (upstream: tile-ai/tilelang)
+
+Before opening
+- search existing issues first (CONTRIBUTING.md "Report Bugs")
+- suspected compiler defect: preserve the smallest failing kernel with its
+  generated source or lowering trace (tilelang-ascend-debug skill) BEFORE
+  filing; filing an upstream issue requires user approval
+
+Title
+- bracketed component tag prefix, e.g.:
+	[BugFix] is for commits; for issues use a short plain summary like
+	"Ascend: <component> <symptom>" or the area name, e.g.
+	"[Ascend] AutoSchedule mis-schedules ..." / "[JIT] ..."
+- match the tag vocabulary used in commits: [Ascend] / [JIT] / [Transform] /
+  [Codegen] / [Autotune] / [Test] / [Docs]
+
+Body (required by CONTRIBUTING.md)
+- code snippet that reproduces the bug with a minimal setup
+- a clear explanation of what the issue is
+
+Body (recommended additions)
+- environment: tilelang commit, CANN/Bisheng version, arch (dav-3510 for A5),
+  device model, torch/torch_npu version
+- expected vs actual behavior
+- logs or generated-source / lowering-trace excerpt
+- impact scope and urgency
+
+Conductor-side bookkeeping
+- capability gaps found during tasks are first registered in
+  .agents/evolution/capability-gaps.md; upstream issues are driven by
+  proposals after the recurring threshold, with user approval
