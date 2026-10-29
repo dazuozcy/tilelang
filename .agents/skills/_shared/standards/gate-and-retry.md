@@ -23,7 +23,7 @@
 |-------|------|------------|
 | 0 | 3 次（结构问题重试） | `BLOCKED_SCAFFOLD`（"GPU 无实现"直接 `BLOCKED_SPEC`，repo 缺失直接 `BLOCKED_ENVIRONMENT`，不耗重试） |
 | 1 | 3 次 | `BLOCKED_DESIGN`（门禁失败类） |
-| 2 | 不适用（检视不通过走 `retry_count` 修订循环） | `retry_count >= max_retry` → `BLOCKED_DESIGN` |
+| 2 | 报告机械修复 3 次（`--reason report_repair`）；设计不通过走修订循环 | 报告修复超限或 `retry_count >= max_retry` → `BLOCKED_DESIGN` |
 | 3 | 5 次 Subagent 调度（运行失败 + 精度失败合并累计；`[DESIGN_ERROR]` 触发修订不计入） | 因运行失败超限 → `BLOCKED_IMPL`；因精度失败超限 → `BLOCKED_ACCURACY` |
 | 4 | 10 轮迭代（optimize 场景含回归 `precision_fix` 重调度） | `SUCCESS`（附中止原因） |
 | 5 | 2 次重调度（integrator 内部另有 5 次调试闭环，预算独立） | `BLOCKED_INTEGRATION` |
@@ -33,13 +33,15 @@
 
 ### 任务级预算（`budget` 字段，E1.3）
 
+内部实验/调试执行前预占、墙钟中断和恢复使用 execution-efficiency.md §4 的共享执行账本；Primary 同步有效上限，不能仅在下一次 dispatch 才检查。
+
 `.stage_state.json` 的 `budget` 字段（枚举与写入方式见 [signal-registry.md](signal-registry.md) §3）为**任务级开销上限**，与上表的 Stage 级重试预算正交：
 
 | 维度 | 默认 | 语义 |
 |------|------|------|
 | `max_wallclock_s` | `null`（不限） | 任务墙钟上限（秒） |
-| `max_subagent_dispatches` | `null`（不限；建议值 40） | Subagent 调度总次数上限（timeline `start` 事件计数） |
-| `max_stage4_experiments` | `null`（不限；建议值 30，与 optimizer `max_experiments=30` 对齐） | Stage 4 实验分支总数上限（调度 optimizer 时透传） |
+| `max_subagent_dispatches` | 新任务 40；历史 null 由 Primary 初始化 | Subagent 调度总次数上限（timeline `start` 事件计数） |
+| `max_stage4_experiments` | 新任务 30，跨所有 kernel/workload 合计 | Stage 4 实验分支总数上限（调度 optimizer 时透传） |
 
 执行方式：`statectl start` 每次返回预算水位 `budget`（`dispatches_used` / `wallclock_s` / `exceeded`，advisory 不拦截）；`budget.exceeded` 非空 → conductor **停止调度新 Subagent**，向用户报告水位并请求决策（经 `statectl set --budget-json` 上调后继续，或以现有最优产物收束 / 标记失败）。最终报告「成本」段粘贴水位数据（见 [final-report-template.md](final-report-template.md)）。
 

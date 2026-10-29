@@ -49,9 +49,7 @@ def _load_arm(script_path: str, arm: str):
     spec.loader.exec_module(module)
     make_fn = getattr(module, "make_fn", None)
     if not callable(make_fn):
-        raise RuntimeError(
-            f"arm script {script_path} must define make_fn() -> callable"
-        )
+        raise RuntimeError(f"arm script {script_path} must define make_fn() -> callable")
     fn = make_fn()
     if not callable(fn):
         raise RuntimeError(f"make_fn() in {script_path} did not return a callable")
@@ -86,6 +84,46 @@ def sign_test_paired(diffs: list) -> float:
     return min(1.0, p)
 
 
+def summarize_pairs(runs: dict, noise: float = 0.03) -> dict:
+    """Adjudicate already collected, alternating-order msprof pairs."""
+    if not 0 <= noise < 1:
+        raise ValueError("noise must be in [0, 1)")
+    if len(runs["A"]) != len(runs["B"]) or len(runs["A"]) < 3:
+        raise ValueError("at least three complete pairs are required")
+    if any(not math.isfinite(v) or v <= 0 for arm in ("A", "B") for v in runs[arm]):
+        raise ValueError("samples must be finite and positive")
+    pair_diffs = [b - a for a, b in zip(runs["A"], runs["B"])]
+    med_a = statistics.median(runs["A"])
+    med_b = statistics.median(runs["B"])
+    rel = (med_a - med_b) / med_a if med_a else 0.0
+    p_value = sign_test_paired(pair_diffs)
+    # consistent direction = every pair agrees with the merged median sign
+    consistent = all((d > 0) == (sum(pair_diffs) > 0) and d != 0 for d in pair_diffs) if pair_diffs else False
+    # For small n the exact sign test cannot reach p<0.1 (n=3 floor is
+    # 0.25), so direction consistency is the deciding criterion there
+    # (documented protocol: merged median + stable pairing order); the
+    # p-value gates the verdict only once n >= 5.
+    significance = consistent and (len(pair_diffs) < 5 or p_value < 0.1)
+    if abs(rel) < noise:
+        verdict = "tie"
+    elif rel > 0 and significance:
+        verdict = "B_better"
+    elif rel < 0 and significance:
+        verdict = "A_better"
+    else:
+        verdict = "inconclusive"
+
+    return {
+        "a_merged_median_ms": med_a,
+        "b_merged_median_ms": med_b,
+        "b_rel_change": -rel,
+        "sign_test_p": p_value,
+        "direction_consistent": consistent,
+        "noise_threshold": noise,
+        "verdict": verdict,
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
@@ -98,24 +136,16 @@ def main() -> int:
         required=True,
         help="candidate arm: python module defining make_fn() -> callable",
     )
-    ap.add_argument(
-        "--workdir", default="perf_opt/ab_test", help="output dir for profiles and logs"
-    )
-    ap.add_argument(
-        "--pairs", type=int, default=3, help="number of A/B pairs (>= 3 recommended)"
-    )
+    ap.add_argument("--workdir", default="perf_opt/ab_test", help="output dir for profiles and logs")
+    ap.add_argument("--pairs", type=int, default=3, help="number of A/B pairs (>= 3 recommended)")
     ap.add_argument(
         "--backend",
         default="msprof",
         choices=("msprof", "event", "wall"),
         help="do_bench backend (msprof = sole end-to-end latency authority)",
     )
-    ap.add_argument(
-        "--warmup-ms", type=float, default=25.0, help="do_bench warmup (ms)"
-    )
-    ap.add_argument(
-        "--rep-ms", type=float, default=100.0, help="do_bench repeat window (ms)"
-    )
+    ap.add_argument("--warmup-ms", type=float, default=25.0, help="do_bench warmup (ms)")
+    ap.add_argument("--rep-ms", type=float, default=100.0, help="do_bench repeat window (ms)")
     ap.add_argument(
         "--noise",
         type=float,
@@ -124,6 +154,8 @@ def main() -> int:
     )
     args = ap.parse_args()
 
+    if args.pairs < 3 or not 0 <= args.noise < 1:
+        ap.error("--pairs must be >=3 and --noise in [0,1)")
     os.makedirs(args.workdir, exist_ok=True)
     profiles_dir = os.path.join(args.workdir, "profiles")
     os.makedirs(profiles_dir, exist_ok=True)
@@ -135,11 +167,7 @@ def main() -> int:
         import torch
 
         if args.backend == "msprof" and not torch.npu.is_available():
-            print(
-                json.dumps(
-                    {"error": "torch.npu not available (CANN/torch_npu environment)"}
-                )
-            )
+            print(json.dumps({"error": "torch.npu not available (CANN/torch_npu environment)"}))
             return 2
         fn_a = _load_arm(args.a_script, "A")
         fn_b = _load_arm(args.b_script, "B")
@@ -168,30 +196,7 @@ def main() -> int:
         print(json.dumps({"error": f"measurement failed: {e}"}))
         return 1
 
-    med_a = statistics.median(runs["A"])
-    med_b = statistics.median(runs["B"])
-    rel = (med_a - med_b) / med_a if med_a else 0.0
-    p_value = sign_test_paired(pair_diffs)
-    # consistent direction = every pair agrees with the merged median sign
-    consistent = (
-        all((d > 0) == (sum(pair_diffs) > 0) and d != 0 for d in pair_diffs)
-        if pair_diffs
-        else False
-    )
-    # For small n the exact sign test cannot reach p<0.1 (n=3 floor is
-    # 0.25), so direction consistency is the deciding criterion there
-    # (documented protocol: merged median + stable pairing order); the
-    # p-value gates the verdict only once n >= 5.
-    significance = consistent and (len(pair_diffs) < 5 or p_value < 0.1)
-    if abs(rel) < args.noise:
-        verdict = "tie"
-    elif rel > 0 and significance:
-        verdict = "B_better"
-    elif rel < 0 and significance:
-        verdict = "A_better"
-    else:
-        verdict = "inconclusive"
-
+    summary = summarize_pairs(runs, args.noise)
     result = {
         "protocol": "interleaved A/B multi-run on do_bench(msprof)",
         "metric": "do_bench_msprof_latency",
@@ -199,15 +204,15 @@ def main() -> int:
         "backend": args.backend,
         "a_medians_ms": runs["A"],
         "b_medians_ms": runs["B"],
-        "a_merged_median_ms": round(med_a, 6),
-        "b_merged_median_ms": round(med_b, 6),
-        "b_rel_change": round(-rel, 4),
+        "a_merged_median_ms": round(summary["a_merged_median_ms"], 6),
+        "b_merged_median_ms": round(summary["b_merged_median_ms"], 6),
+        "b_rel_change": round(summary["b_rel_change"], 4),
         "pair_diffs_ms": [round(d, 6) for d in pair_diffs],
-        "sign_test_p": round(p_value, 4),
-        "direction_consistent": consistent,
+        "sign_test_p": round(summary["sign_test_p"], 4),
+        "direction_consistent": summary["direction_consistent"],
         "noise_threshold": args.noise,
         "profiler_output": profiles_dir,
-        "verdict": verdict,
+        "verdict": summary["verdict"],
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

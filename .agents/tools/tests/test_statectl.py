@@ -377,9 +377,7 @@ def write_artifacts(d: Path, design=True, review=True, kernel=True):
 
 
 def write_empty_workload_inventory(d: Path):
-    (d / "perf_opt" / "workload_inventory.json").write_text(
-        json.dumps({"workloads": []}), encoding="utf-8"
-    )
+    (d / "perf_opt" / "workload_inventory.json").write_text(json.dumps({"workloads": []}), encoding="utf-8")
 
 
 def init_new_op(d: Path, **kw):
@@ -743,9 +741,7 @@ def test_design_revision_flow(tmp_path):
     d = op_dir(repo)
     _reach_stage3(d)
     # 检视不通过 → 修订路径 A
-    (d / "REVIEW.md").write_text(
-        REVIEW_MD.replace("结论: 通过", "结论: 不通过"), encoding="utf-8"
-    )
+    (d / "REVIEW.md").write_text(REVIEW_MD.replace("结论: 通过", "结论: 不通过"), encoding="utf-8")
     rc, out = sc("fail", "2", "--dir", str(d), "--reason", "design_revision")
     assert rc == 0 and out["retry_count"] == 1
     state = load_state(d)
@@ -825,9 +821,7 @@ def test_gate1_research_4q_incomplete(tmp_path):
 def test_gate1_placeholder(tmp_path):
     repo = make_repo(tmp_path)
     d = op_dir(repo)
-    bad = DESIGN_MD.replace(
-        "### 4.3 中间缓冲区\n\n无。", "### 4.3 中间缓冲区\n\n待补充"
-    )
+    bad = DESIGN_MD.replace("### 4.3 中间缓冲区\n\n无。", "### 4.3 中间缓冲区\n\n待补充")
     (d / "DESIGN.md").write_text(bad, encoding="utf-8")
     assert init_new_op(d)[0] == 0
     rc, out = sc("gate", "1", "--dir", str(d))
@@ -860,9 +854,7 @@ def test_gate1_cores_elements_missing(tmp_path):
         "核数依据：torch.npu.get_device_properties().cube_core_num 实查值，查询代码已记录。",
         "",
     )
-    bad = bad.replace(
-        "AIC/AIV 分工：纯 Vector 算子，仅占 AIV；同步策略：auto_schedule: yes。", ""
-    )
+    bad = bad.replace("AIC/AIV 分工：纯 Vector 算子，仅占 AIV；同步策略：auto_schedule: yes。", "")
     (d / "DESIGN.md").write_text(bad, encoding="utf-8")
     assert init_new_op(d)[0] == 0
     rc, out = sc("gate", "1", "--dir", str(d))
@@ -883,9 +875,7 @@ def test_gate1_valid_design_passes(tmp_path):
 def test_gate2_fuzzy_conclusion_rejected(tmp_path):
     repo = make_repo(tmp_path)
     d = op_dir(repo)
-    (d / "REVIEW.md").write_text(
-        REVIEW_MD.replace("结论: 通过", "结论: 基本通过"), encoding="utf-8"
-    )
+    (d / "REVIEW.md").write_text(REVIEW_MD.replace("结论: 通过", "结论: 基本通过"), encoding="utf-8")
     assert init_new_op(d)[0] == 0
     rc, out = sc("gate", "2", "--dir", str(d))
     rules = {f["rule_id"] for f in out["failures"]}
@@ -947,9 +937,7 @@ def test_gate3_kernel_ast_failures(tmp_path):
         "def run_L1():\n    x = torch.randn(8, 16)\n    assert golden_t(x).shape == (8, 16)\n",
         "",
     )
-    bad = bad.replace(
-        '"--level", default="L0", choices=["L0", "all"]', '"--run", default="L0"'
-    )
+    bad = bad.replace('"--level", default="L0", choices=["L0", "all"]', '"--run", default="L0"')
     (d / "t.py").write_text(bad, encoding="utf-8")
     rc, out = sc("gate", "3", "--dir", str(d))
     rules = {f["rule_id"] for f in out["failures"]}
@@ -1044,9 +1032,7 @@ def test_verify_detects_completed_stage_without_artifact(tmp_path):
         "stage_status": {"1": "completed"},
         "stage_retry_count": {},
     }
-    (d / ".stage_state.json").write_text(
-        json.dumps(state, ensure_ascii=False), encoding="utf-8"
-    )
+    (d / ".stage_state.json").write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
     rc, out = sc("verify", "--dir", str(d))
     assert rc == 1
     assert out["schema_failures"]  # 缺字段被报出（backfill 不掩盖）
@@ -1078,9 +1064,7 @@ def test_repair_backfills_missing_fields(tmp_path):
         "stage_status": {},
         "retry_count": 0,
     }
-    (d / ".stage_state.json").write_text(
-        json.dumps(state, ensure_ascii=False), encoding="utf-8"
-    )
+    (d / ".stage_state.json").write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
     rc, out = sc("repair", "--dir", str(d))
     assert rc == 0 and "max_retry" in out["would_fix"]
     rc, out = sc("repair", "--dir", str(d), "--apply")
@@ -1169,17 +1153,7 @@ def _make_harness_repo(tmp_path):
     repo = make_repo(tmp_path)
     slug_dir = repo / "examples" / "mop"
     slug_dir.mkdir(parents=True)
-    meta_path = (
-        repo
-        / "examples"
-        / "TileOPs"
-        / "src"
-        / "tileops"
-        / "_kernels"
-        / "reduction"
-        / "mop"
-        / ".migration_meta.json"
-    )
+    meta_path = repo / "examples" / "TileOPs" / "src" / "tileops" / "_kernels" / "reduction" / "mop" / ".migration_meta.json"
     meta_path.parent.mkdir(parents=True)
     source = repo / "gpu"
     source_paths = [
@@ -1205,9 +1179,7 @@ def _make_harness_repo(tmp_path):
             "manifest_path": source_paths[0],
             "op_path": source_paths[1],
             "kernel_bindings": [{"path": source_paths[2], "class": "MopKernel"}],
-            "function_sources": {
-                f: source_paths[2] for f in META["extracted_functions"]
-            },
+            "function_sources": {f: source_paths[2] for f in META["extracted_functions"]},
             "workload_paths": [source_paths[3]],
             "test_paths": [source_paths[4]],
             "bench_paths": [source_paths[5]],
@@ -1280,9 +1252,7 @@ def test_migration_integrate_fail_limit(tmp_path):
     sc("migration", "func", "funcA", "--dir", str(slug_dir), "--status", "done")
     sc("migration", "phase", "--dir", str(slug_dir), "--phase", "INTEGRATE")
     for _ in range(2):
-        rc, out = sc(
-            "migration", "integrate", "--dir", str(slug_dir), "--status", "fail"
-        )
+        rc, out = sc("migration", "integrate", "--dir", str(slug_dir), "--status", "fail")
         assert out.get("phase") != "FAILED"
     rc, out = sc("migration", "integrate", "--dir", str(slug_dir), "--status", "fail")
     assert out["phase"] == "FAILED"
@@ -1359,40 +1329,17 @@ def test_gate5_integration_lint(tmp_path):
     rc, out = sc("gate", "5", "--dir", str(slug_dir), "--migration-dir", str(slug_dir))
     assert rc == 1
     assert "S5-PKG" in {f["rule_id"] for f in out["failures"]}
-    pkg = (
-        repo
-        / "examples"
-        / "TileOPs"
-        / "src"
-        / "tileops"
-        / "_kernels"
-        / "reduction"
-        / "mop"
-        / "mop_kernel"
-    )
+    pkg = repo / "examples" / "TileOPs" / "src" / "tileops" / "_kernels" / "reduction" / "mop" / "mop_kernel"
     pkg.mkdir(parents=True)
     (pkg / "__init__.py").write_text("", encoding="utf-8")
     (pkg / "integration_log.md").write_text("ok\n", encoding="utf-8")
     for f in ("funcA", "funcB"):
-        (pkg / f"{f}.py").write_text(
-            '"""programming_mode: simt"""\n' + KERNEL_PY, encoding="utf-8"
-        )
+        (pkg / f"{f}.py").write_text('"""programming_mode: simt"""\n' + KERNEL_PY, encoding="utf-8")
         (pkg / f"{f}_DESIGN.md").write_text(DESIGN_MD, encoding="utf-8")
-    wrapper = (
-        repo
-        / "examples"
-        / "TileOPs"
-        / "src"
-        / "tileops"
-        / "_kernels"
-        / "reduction"
-        / "mop"
-        / "mop.py"
-    )
+    wrapper = repo / "examples" / "TileOPs" / "src" / "tileops" / "_kernels" / "reduction" / "mop" / "mop.py"
     wrapper.parent.mkdir(parents=True, exist_ok=True)
     wrapper.write_text(
-        "from .mop_kernel import funcA  # baseline\n"
-        "# from .mop_kernel.perf_opt import funcA  # perf_opt\n",
+        "from .mop_kernel import funcA  # baseline\n# from .mop_kernel.perf_opt import funcA  # perf_opt\n",
         encoding="utf-8",
     )
     rc, out = sc("gate", "5", "--dir", str(slug_dir), "--migration-dir", str(slug_dir))
@@ -1421,29 +1368,16 @@ def _ready_stage5_gate(tmp_path):
         "funcB",
     )
     assert rc == 0, out
-    pkg = (
-        repo
-        / "examples"
-        / "TileOPs"
-        / "src"
-        / "tileops"
-        / "_kernels"
-        / "reduction"
-        / "mop"
-        / "mop_kernel"
-    )
+    pkg = repo / "examples" / "TileOPs" / "src" / "tileops" / "_kernels" / "reduction" / "mop" / "mop_kernel"
     pkg.mkdir(parents=True)
     (pkg / "__init__.py").write_text("", encoding="utf-8")
     (pkg / "integration_log.md").write_text("ok\n", encoding="utf-8")
     for func in ("funcA", "funcB"):
-        (pkg / f"{func}.py").write_text(
-            '"""programming_mode: simt"""\n' + KERNEL_PY, encoding="utf-8"
-        )
+        (pkg / f"{func}.py").write_text('"""programming_mode: simt"""\n' + KERNEL_PY, encoding="utf-8")
         (pkg / f"{func}_DESIGN.md").write_text(DESIGN_MD, encoding="utf-8")
     wrapper = pkg.parent / "mop.py"
     wrapper.write_text(
-        "from .mop_kernel import funcA  # baseline\n"
-        "# from .mop_kernel.perf_opt import funcA  # perf_opt\n",
+        "from .mop_kernel import funcA  # baseline\n# from .mop_kernel.perf_opt import funcA  # perf_opt\n",
         encoding="utf-8",
     )
     return repo, slug_dir, pkg, wrapper
@@ -1454,8 +1388,7 @@ def test_gate5_rejects_missing_mode_and_legacy_ascend_mode(tmp_path):
     _write_stage5_report(repo, pkg)
     # legacy ascend_mode reference in wrapper is rejected (mechanism deleted)
     wrapper.write_text(
-        wrapper.read_text(encoding="utf-8")
-        + "from tileops._kernels.kernel_base import Kernel\n"
+        wrapper.read_text(encoding="utf-8") + "from tileops._kernels.kernel_base import Kernel\n"
         "class MopKernel(Kernel):\n"
         '    ascend_mode = "Developer"  # legacy mechanism, must be rejected\n',
         encoding="utf-8",
@@ -1465,8 +1398,7 @@ def test_gate5_rejects_missing_mode_and_legacy_ascend_mode(tmp_path):
     assert "S5-PROG-MODE" in {f["rule_id"] for f in out["failures"]}
     # wrapper clean again, but a kernel missing the docstring declaration fails
     wrapper.write_text(
-        "from .mop_kernel import funcA  # baseline\n"
-        "# from .mop_kernel.perf_opt import funcA  # perf_opt\n",
+        "from .mop_kernel import funcA  # baseline\n# from .mop_kernel.perf_opt import funcA  # perf_opt\n",
         encoding="utf-8",
     )
     (pkg / "funcA.py").write_text(KERNEL_PY.split("\n", 3)[-1], encoding="utf-8")
@@ -1474,12 +1406,8 @@ def test_gate5_rejects_missing_mode_and_legacy_ascend_mode(tmp_path):
     assert rc == 1
     assert "S5-PROG-MODE" in {f["rule_id"] for f in out["failures"]}
     # mixed modes across kernels of one Kernel class fail
-    (pkg / "funcA.py").write_text(
-        '"""programming_mode: simt"""\n' + KERNEL_PY, encoding="utf-8"
-    )
-    (pkg / "funcB.py").write_text(
-        '"""programming_mode: mixed"""\n' + KERNEL_PY, encoding="utf-8"
-    )
+    (pkg / "funcA.py").write_text('"""programming_mode: simt"""\n' + KERNEL_PY, encoding="utf-8")
+    (pkg / "funcB.py").write_text('"""programming_mode: mixed"""\n' + KERNEL_PY, encoding="utf-8")
     rc, out = sc("gate", "5", "--dir", str(slug_dir), "--migration-dir", str(slug_dir))
     assert rc == 1
     assert "S5-PROG-MODE" in {f["rule_id"] for f in out["failures"]}
@@ -1621,13 +1549,9 @@ def test_set_budget_json_validation_and_watermark(tmp_path):
     # 非法 JSON / 未知字段 / 非正值都被拒
     assert sc("set", "--dir", str(d), "--budget-json", "not-json")[0] == 1
     assert sc("set", "--dir", str(d), "--budget-json", '{"unknown_dim": 1}')[0] == 1
-    assert (
-        sc("set", "--dir", str(d), "--budget-json", '{"max_wallclock_s": -5}')[0] == 1
-    )
+    assert sc("set", "--dir", str(d), "--budget-json", '{"max_wallclock_s": -5}')[0] == 1
     # 合法写入
-    rc, _ = sc(
-        "set", "--dir", str(d), "--budget-json", '{"max_subagent_dispatches": 1}'
-    )
+    rc, _ = sc("set", "--dir", str(d), "--budget-json", '{"max_subagent_dispatches": 1}')
     assert rc == 0
     assert load_state(d)["budget"]["max_subagent_dispatches"] == 1
     # 第 1 次 dispatch：水位正常（advisory，不拦截）
@@ -1643,15 +1567,8 @@ def test_set_budget_json_validation_and_watermark(tmp_path):
     assert out["budget"]["dispatches_used"] == 1
     assert out["budget"]["exceeded"] == ["max_subagent_dispatches"]
     # 超限事件进入 timeline（可审计）
-    events = [
-        json.loads(line)
-        for line in (d / ".task_timeline.jsonl")
-        .read_text(encoding="utf-8")
-        .splitlines()
-    ]
-    assert any(
-        ev.get("action") == "start" and ev.get("budget_exceeded") for ev in events
-    )
+    events = [json.loads(line) for line in (d / ".task_timeline.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert any(ev.get("action") == "start" and ev.get("budget_exceeded") for ev in events)
 
 
 def test_budget_absent_keeps_start_payload_unchanged(tmp_path):
@@ -1708,9 +1625,7 @@ def _single_workload_artifacts(d: Path):
             },
         ]
     }
-    (d / "perf_opt" / "workload_inventory.json").write_text(
-        json.dumps(inventory), encoding="utf-8"
-    )
+    (d / "perf_opt" / "workload_inventory.json").write_text(json.dumps(inventory), encoding="utf-8")
     artifact_hash = hashlib.sha256((d / "perf_opt" / "t.py").read_bytes()).hexdigest()
     rows = [
         {
@@ -1768,16 +1683,12 @@ def test_gate4_perf_records_recon_mismatch(tmp_path):
     _single_workload_artifacts(d)
     log_path = d / "perf_opt" / "opt_log.md"
     log = log_path.read_text(encoding="utf-8")
-    log_path.write_text(
-        log.replace("| w1 | 120.5 | 100.0 |", "| w1 | 120.5 | 50.0 |"), encoding="utf-8"
-    )
+    log_path.write_text(log.replace("| w1 | 120.5 | 100.0 |", "| w1 | 120.5 | 50.0 |"), encoding="utf-8")
     rc, out = sc("gate", "4", "--dir", str(d))
     assert rc == 1
     assert "S4-PERF-RECORDS-RECON" in {f["rule_id"] for f in out["failures"]}
     # 缺逐 workload 最终表也不可对账。
-    log_path.write_text(
-        log.replace("## Final Performance Test Data", "## Results"), encoding="utf-8"
-    )
+    log_path.write_text(log.replace("## Final Performance Test Data", "## Results"), encoding="utf-8")
     rc, out = sc("gate", "4", "--dir", str(d))
     assert rc == 1
     assert "S4-PERF-RECORDS-RECON" in {f["rule_id"] for f in out["failures"]}
@@ -1871,9 +1782,7 @@ def _stage4_workload_artifacts(d: Path):
             )
         ],
     }
-    (d / "perf_opt" / "workload_inventory.json").write_text(
-        json.dumps(inventory), encoding="utf-8"
-    )
+    (d / "perf_opt" / "workload_inventory.json").write_text(json.dumps(inventory), encoding="utf-8")
     rows = []
     for wid, baseline, final in (
         ("yolo-p3-f16", 120.0, 90.0),
@@ -1892,9 +1801,7 @@ def _stage4_workload_artifacts(d: Path):
                     "workload_id": wid,
                     "phase": phase,
                     "artifact_path": "t.py",
-                    "artifact_sha256": hashlib.sha256(
-                        (d / "perf_opt" / "t.py").read_bytes()
-                    ).hexdigest(),
+                    "artifact_sha256": hashlib.sha256((d / "perf_opt" / "t.py").read_bytes()).hexdigest(),
                     "duration_us": duration,
                     "l0_pass": True,
                     "profiler_output": f"profiles/{phase}/{wid}",
@@ -1932,11 +1839,7 @@ def test_gate4_rejects_missing_case_and_mixed_final_candidate(tmp_path):
     _, rows = _stage4_workload_artifacts(d)
     write_perf_records(
         d,
-        "".join(
-            json.dumps(row) + "\n"
-            for row in rows
-            if not (row["workload_id"] == "yolo-p4-f16" and row["phase"] == "final")
-        ),
+        "".join(json.dumps(row) + "\n" for row in rows if not (row["workload_id"] == "yolo-p4-f16" and row["phase"] == "final")),
     )
     rc, out = sc("gate", "4", "--dir", str(d))
     assert rc == 1
@@ -1954,16 +1857,12 @@ def test_gate4_smoke_excluded_and_precision_checked(tmp_path):
     assert init_new_op(d)[0] == 0
     inventory, rows = _stage4_workload_artifacts(d)
     inventory["workloads"][2]["precision_pass"] = False
-    (d / "perf_opt" / "workload_inventory.json").write_text(
-        json.dumps(inventory), encoding="utf-8"
-    )
+    (d / "perf_opt" / "workload_inventory.json").write_text(json.dumps(inventory), encoding="utf-8")
     rc, out = sc("gate", "4", "--dir", str(d))
     assert rc == 1
     assert "S4-WORKLOAD-INVENTORY" in {f["rule_id"] for f in out["failures"]}
     inventory["workloads"][2]["precision_pass"] = True
-    (d / "perf_opt" / "workload_inventory.json").write_text(
-        json.dumps(inventory), encoding="utf-8"
-    )
+    (d / "perf_opt" / "workload_inventory.json").write_text(json.dumps(inventory), encoding="utf-8")
     rows.append({**rows[0], "workload_id": "smoke-1m-f16"})
     write_perf_records(d, "".join(json.dumps(row) + "\n" for row in rows))
     rc, out = sc("gate", "4", "--dir", str(d))
@@ -1977,19 +1876,13 @@ def test_gate4_rejects_smoke_as_tune_and_stale_final_file(tmp_path):
     assert init_new_op(d)[0] == 0
     inventory, _ = _stage4_workload_artifacts(d)
     inventory["workloads"][2]["kind"] = "tune"
-    (d / "perf_opt" / "workload_inventory.json").write_text(
-        json.dumps(inventory), encoding="utf-8"
-    )
+    (d / "perf_opt" / "workload_inventory.json").write_text(json.dumps(inventory), encoding="utf-8")
     rc, out = sc("gate", "4", "--dir", str(d))
     assert rc == 1
     assert "S4-WORKLOAD-INVENTORY" in {f["rule_id"] for f in out["failures"]}
     inventory["workloads"][2]["kind"] = "smoke"
-    (d / "perf_opt" / "workload_inventory.json").write_text(
-        json.dumps(inventory), encoding="utf-8"
-    )
-    (d / "perf_opt" / "t.py").write_text(
-        KERNEL_PY + "\n# changed after profiling\n", encoding="utf-8"
-    )
+    (d / "perf_opt" / "workload_inventory.json").write_text(json.dumps(inventory), encoding="utf-8")
+    (d / "perf_opt" / "t.py").write_text(KERNEL_PY + "\n# changed after profiling\n", encoding="utf-8")
     rc, out = sc("gate", "4", "--dir", str(d))
     assert rc == 1
     assert "S4-PERF-RECORDS-RECON" in {f["rule_id"] for f in out["failures"]}
@@ -2001,21 +1894,16 @@ def test_gate4_rejects_unfinished_and_smoke_in_final_table(tmp_path):
     assert init_new_op(d)[0] == 0
     inventory, _ = _stage4_workload_artifacts(d)
     del inventory["workloads"][0]["tuning_status"]
-    (d / "perf_opt" / "workload_inventory.json").write_text(
-        json.dumps(inventory), encoding="utf-8"
-    )
+    (d / "perf_opt" / "workload_inventory.json").write_text(json.dumps(inventory), encoding="utf-8")
     rc, out = sc("gate", "4", "--dir", str(d))
     assert rc == 1
     assert "S4-WORKLOAD-INVENTORY" in {f["rule_id"] for f in out["failures"]}
 
     inventory["workloads"][0]["tuning_status"] = "winner_merged"
-    (d / "perf_opt" / "workload_inventory.json").write_text(
-        json.dumps(inventory), encoding="utf-8"
-    )
+    (d / "perf_opt" / "workload_inventory.json").write_text(json.dumps(inventory), encoding="utf-8")
     log_path = d / "perf_opt" / "opt_log.md"
     log_path.write_text(
-        log_path.read_text(encoding="utf-8")
-        + "| kernels/mish.py::main | smoke-1m-f16 | 1.0 | 1.0 | merged-best |\n",
+        log_path.read_text(encoding="utf-8") + "| kernels/mish.py::main | smoke-1m-f16 | 1.0 | 1.0 | merged-best |\n",
         encoding="utf-8",
     )
     rc, out = sc("gate", "4", "--dir", str(d))
@@ -2098,30 +1986,20 @@ def test_gate4_perf_feedback_schema_failures(tmp_path):
     write_perf_feedback(d, PERF_FEEDBACK_MD.replace("设计层归因: ", "归因: "))
     assert "S4-PERF-FEEDBACK-TRIGGER" in rules()
     # 实测章节缺 msprof 口径
-    write_perf_feedback(
-        d, PERF_FEEDBACK_MD.replace("msprof op Task Duration", "event 计时")
-    )
+    write_perf_feedback(d, PERF_FEEDBACK_MD.replace("msprof op Task Duration", "event 计时"))
     assert "S4-PERF-FEEDBACK-METRIC" in rules()
     # 反馈结论缺「建议路由」
-    write_perf_feedback(
-        d, PERF_FEEDBACK_MD.replace("建议路由: 附录补记", "路由倾向: 附录补记")
-    )
+    write_perf_feedback(d, PERF_FEEDBACK_MD.replace("建议路由: 附录补记", "路由倾向: 附录补记"))
     assert "S4-PERF-FEEDBACK-ROUTE" in rules()
     # 占位符残留 / 未替换模板变量
-    write_perf_feedback(
-        d, PERF_FEEDBACK_MD.replace("## 假设", "## 假设\n\n影响面待补充。")
-    )
+    write_perf_feedback(d, PERF_FEEDBACK_MD.replace("## 假设", "## 假设\n\n影响面待补充。"))
     assert "S4-PERF-FEEDBACK-PLACEHOLDER" in rules()
-    write_perf_feedback(
-        d, PERF_FEEDBACK_MD.replace("## 假设\n", "## 假设\n\n<按模板填写>\n")
-    )
+    write_perf_feedback(d, PERF_FEEDBACK_MD.replace("## 假设\n", "## 假设\n\n<按模板填写>\n"))
     assert "S4-PERF-FEEDBACK-PLACEHOLDER" in rules()
     # 死链引用
     write_perf_feedback(
         d,
-        PERF_FEEDBACK_MD.replace(
-            "## 影响面\n", "## 影响面\n\n参考 examples/does_not_exist/foo.py。\n"
-        ),
+        PERF_FEEDBACK_MD.replace("## 影响面\n", "## 影响面\n\n参考 examples/does_not_exist/foo.py。\n"),
     )
     assert "S4-PERF-FEEDBACK-REF" in rules()
 
@@ -2161,12 +2039,7 @@ def test_set_perf_feedback_action(tmp_path):
     rc, out = sc("set", "--dir", str(d), "--perf-feedback-action", "bogus")
     assert rc == 2
     # timeline 记录路由动作
-    timeline = [
-        json.loads(line)
-        for line in (d / ".task_timeline.jsonl")
-        .read_text(encoding="utf-8")
-        .splitlines()
-    ]
+    timeline = [json.loads(line) for line in (d / ".task_timeline.jsonl").read_text(encoding="utf-8").splitlines()]
     assert timeline[-1]["action"] == "set"
     assert timeline[-1]["perf_feedback_action"] == "archive"
 
@@ -2195,12 +2068,8 @@ def test_design_limit_revision_flow(tmp_path):
     assert state["phase"] == "DONE"
     assert state["perf_feedback"]["action"] == "archive"
     # perf_feedback.md 进入 Stage 4 快照，篡改后 verify 报漂移
-    assert any(p.endswith("perf_feedback.md") for p in state["artifact_hashes"]), state[
-        "artifact_hashes"
-    ]
-    (d / "perf_opt" / "perf_feedback.md").write_text(
-        PERF_FEEDBACK_MD + "\n被篡改\n", encoding="utf-8"
-    )
+    assert any(p.endswith("perf_feedback.md") for p in state["artifact_hashes"]), state["artifact_hashes"]
+    (d / "perf_opt" / "perf_feedback.md").write_text(PERF_FEEDBACK_MD + "\n被篡改\n", encoding="utf-8")
     rc, out = sc("verify", "--dir", str(d))
     assert rc == 1
     assert any("漂移" in item["issue"] for item in out["drift"])
@@ -2241,12 +2110,7 @@ def test_design_limit_revision_from_stage4(tmp_path):
 
 
 def read_timeline(d: Path) -> list:
-    return [
-        json.loads(line)
-        for line in (d / ".task_timeline.jsonl")
-        .read_text(encoding="utf-8")
-        .splitlines()
-    ]
+    return [json.loads(line) for line in (d / ".task_timeline.jsonl").read_text(encoding="utf-8").splitlines()]
 
 
 def init_at(d: Path, now: str, **kw):
@@ -2417,12 +2281,115 @@ def test_timeline_summary_migration_aggregate(tmp_path):
         )[0]
         == 0
     )
-    assert (
-        sc("migration", "func", "funcA", "--dir", str(slug_dir), "--status", "done")[0]
-        == 0
-    )
+    assert sc("migration", "func", "funcA", "--dir", str(slug_dir), "--status", "done")[0] == 0
     rc, out = sc("timeline-summary", "--dir", str(slug_dir))
     assert rc == 0
     assert out["dispatches"] == 0
     assert out["stages"] == [] and out["failures"] == []
     assert out["action_counts"] == {"migration-init": 1, "migration-func": 1}
+
+
+def test_stage2_report_repair_preserves_design_budget(tmp_path):
+    repo = make_repo(tmp_path)
+    d = op_dir(repo)
+    reach_stage(d, 1)
+    assert sc("start", "2", "--dir", str(d))[0] == 0
+    (d / "REVIEW.md").write_text("incomplete report")
+    before = json.loads((d / ".stage_state.json").read_text())
+    assert sc("fail", "2", "--dir", str(d), "--reason", "report_repair")[0] == 0
+    after = json.loads((d / ".stage_state.json").read_text())
+    assert after["retry_count"] == before["retry_count"]
+    assert after["stage_status"]["1"] == "completed"
+    assert after["stage_retry_count"]["2"] == 1
+    assert sc("start", "2", "--dir", str(d))[0] == 0
+    (d / "REVIEW.md").write_text(REVIEW_MD)
+    assert sc("fail", "2", "--dir", str(d), "--reason", "report_repair")[0] == 1
+    assert sc("complete", "2", "--dir", str(d))[0] == 0
+
+
+def test_stage2_report_repair_is_bounded(tmp_path):
+    repo = make_repo(tmp_path)
+    d = op_dir(repo)
+    reach_stage(d, 1)
+    assert sc("start", "2", "--dir", str(d))[0] == 0
+    (d / "REVIEW.md").write_text("incomplete")
+    for _ in range(2):
+        assert sc("fail", "2", "--dir", str(d), "--reason", "report_repair")[0] == 0
+        assert sc("start", "2", "--dir", str(d))[0] == 0
+    rc, out = sc("fail", "2", "--dir", str(d), "--reason", "report_repair")
+    assert rc == 0 and out["failure_reason"] == "BLOCKED_DESIGN"
+
+
+def test_migration_ready_validates_dependencies_without_state_write(tmp_path):
+    repo = make_repo(tmp_path)
+    d = repo / "examples" / "multi"
+    assert (
+        sc(
+            "migration",
+            "init",
+            "--dir",
+            str(d),
+            "--op-slug",
+            "multi",
+            "--family",
+            "test",
+            "--meta-path",
+            "meta.json",
+            "--functions",
+            "a",
+            "b",
+            "c",
+        )[0]
+        == 0
+    )
+    graph = d / "dependencies.json"
+    graph.write_text(json.dumps({"a": [], "b": ["a"], "c": []}))
+    state = (d / ".migration_state.json").read_bytes()
+    assert sc("migration", "ready", "--dir", str(d), "--graph", str(graph))[1]["ready"] == ["a", "c"]
+    assert (d / ".migration_state.json").read_bytes() == state
+    sc("migration", "func", "a", "--dir", str(d), "--status", "done")
+    assert sc("migration", "ready", "--dir", str(d), "--graph", str(graph))[1]["ready"] == ["b", "c"]
+    for invalid in (
+        {"a": ["b"], "b": ["a"], "c": []},
+        {"a": [], "b": ["missing"], "c": []},
+        {"a": []},
+    ):
+        graph.write_text(json.dumps(invalid))
+        rc, out = sc("migration", "ready", "--dir", str(d), "--graph", str(graph))
+        assert rc == 1 and out["errors"][0]["code"] == "E-DEPENDENCIES"
+
+
+def test_artifact_precheck_does_not_need_state(tmp_path):
+    artifact = tmp_path / "REVIEW.md"
+    artifact.write_text(REVIEW_MD)
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(TOOLS_DIR / "gate_lint.py"),
+            "--stage",
+            "2",
+            "--artifact",
+            str(artifact),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert proc.returncode == 0 and json.loads(proc.stdout)["ok"]
+    assert not (tmp_path / ".stage_state.json").exists()
+    artifact.write_text("missing conclusion")
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(TOOLS_DIR / "gate_lint.py"),
+            "--stage",
+            "2",
+            "--artifact",
+            str(artifact),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert proc.returncode == 1
+    assert "S2-CONCLUSION" in {row["rule_id"] for row in json.loads(proc.stdout)["failures"]}

@@ -19,7 +19,7 @@
 2. **一切编译器/运行时结论必须盖工具链版本戳**（tilelang commit/build 时间 + CANN/bisheng 版本 + 设备型号），工具链变更（源码修改/重编译）后**自动视为待重验**，不得直接引用旧结论。
 3. **证伪更正须留痕**：推翻旧结论时在 opt_log 写明"误判根因 + 合法形态 + 新数据"。
 
-## 3. 检索规则（调优 Agent 每轮必读）
+## 3. 检索规则（调优 Agent 首轮必读，内容或瓶颈变化时刷新）
 
 1. **首轮必查项**：① 编程模式重估（SimtVF/SimdVF/mixed 对照 `tilelang-ascend` skill §2/§8，即使上游设计已定——设计期结论可能基于旧工具链）；② 标量执行占比诊断（msprof_detail pipe ratios：`aiv_scalar` 高占比触发换轴）；③ 陷阱条目版本戳与 origin_task 核对（工具链变更则重验，`kb_stale_check.py`）。
 2. 新模式/新代价数据/证伪更正 → 任务结束前追加进对应主题文件（含溯源）。
@@ -38,7 +38,7 @@
 | CONST-gemm-dim-constraints | GEMM 维度约束：M/N 16 倍数、K%TILE_K_SUB==0 且 %C0、C0=32B/elem、FRAC_N=16、NT 约定 | assumption |
 | CONST-cube-throughput-model | Cube 吞吐代价模型（fp16/bf16 8192、fp8 16384、HF32 4096、fp32 512、INT8 MMAD 不支持，ops/cycle/AIC） | assumption |
 | CONST-mte-bandwidth-model | MTE/FixPipe/dual_copy 带宽与延迟模型（B/cycle + base cycles，estimate_latency.h） | assumption |
-| CONST-valu-model | VALU 吞吐与 VRF↔UB 带宽（51/13/8 ops/cycle、256 B/cycle/AIV）；exp/exp2 同档注记；标量 tanh 软件例程反例（1.80×） | assumption |
+| CONST-valu-model | VALU 吞吐与 VRF↔UB 带宽（51/13/8 ops/cycle、256 B/cycle/AIV）；exp/exp2 同档注记；标量 tanh 软件例程反例（1.80×）<!-- codespell:ignore --> | assumption |
 | CONST-vrf-capacity-a5 | VRF 容量假设 256KB（无文档化常数）+ 双口径预算规则 + spill=0 实测样本（76/48/16 reg/thread）；fragment 落 VRF 不占 UB 216KB 预算 | assumption |
 
 ### layout.md — 布局与搬运模式

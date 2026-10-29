@@ -61,10 +61,11 @@ STAGE_PHASE = {
     5: "INTEGRATE",
 }
 TERMINAL_PHASES = {"DONE", "FAILED"}
-STAGE_RETRY_LIMITS = {0: 3, 1: 3, 3: 5, 4: 10, 5: 2}
+STAGE_RETRY_LIMITS = {0: 3, 1: 3, 2: 3, 3: 5, 4: 10, 5: 2}
 BLOCKED_BY_STAGE = {
     0: "BLOCKED_SCAFFOLD",
     1: "BLOCKED_DESIGN",
+    2: "BLOCKED_DESIGN",
     3: "BLOCKED_IMPL",
     5: "BLOCKED_INTEGRATION",
 }
@@ -105,9 +106,7 @@ def emit(payload: dict, exit_code: int) -> int:
 def find_repo_root(start: str) -> str:
     cur = os.path.abspath(start)
     while True:
-        if os.path.exists(os.path.join(cur, ".git")) or os.path.exists(
-            os.path.join(cur, "AGENTS.md")
-        ):
+        if os.path.exists(os.path.join(cur, ".git")) or os.path.exists(os.path.join(cur, "AGENTS.md")):
             return cur
         parent = os.path.dirname(cur)
         if parent == cur:
@@ -221,9 +220,7 @@ class Ctx:
 
     def load(self, errors: list, backfill: bool = True) -> bool:
         if not os.path.exists(self.state_path):
-            errors.append(
-                err("E-MISSING", f"状态文件不存在：{self.state_path}（先执行 init）")
-            )
+            errors.append(err("E-MISSING", f"状态文件不存在：{self.state_path}（先执行 init）"))
             return False
         try:
             with open(self.state_path, encoding="utf-8") as fh:
@@ -349,9 +346,7 @@ def run_gate(stage: int, ctx: Ctx, meta_path: str | None, migration_dir: str | N
                 except (json.JSONDecodeError, OSError):
                     pass
         if not meta:
-            errors.append(
-                err("E-GATE-INPUT", "gate 0 需要 --meta（.migration_meta.json 路径）")
-            )
+            errors.append(err("E-GATE-INPUT", "gate 0 需要 --meta（.migration_meta.json 路径）"))
         else:
             f, w = gate_lint.meta_lint(meta, ctx.repo_root)
             failures, warnings = failures + f, warnings + w
@@ -362,9 +357,7 @@ def run_gate(stage: int, ctx: Ctx, meta_path: str | None, migration_dir: str | N
         f, w = gate_lint.review_lint(paths["review"][1], migration)
         failures, warnings = failures + f, warnings + w
     elif stage == 3:
-        f, w = gate_lint.kernel_lint(
-            paths["kernel"][1], state.get("operator_name") or "op"
-        )
+        f, w = gate_lint.kernel_lint(paths["kernel"][1], state.get("operator_name") or "op")
         failures, warnings = failures + f, warnings + w
     elif stage == 4:
         f, w = gate_lint.perf_lint(
@@ -438,9 +431,7 @@ def scenario_stage_plan(scenario: str, migration_mode: str | None, errors: list)
             return [1, 2, 3]
         if migration_mode == "plain":
             return [1, 2, 3]
-        errors.append(
-            err("E-SCENARIO", "migration 场景必须指定 --migration-mode harness|plain")
-        )
+        errors.append(err("E-SCENARIO", "migration 场景必须指定 --migration-mode harness|plain"))
         return []
     if scenario == "new_op":
         if migration_mode:
@@ -575,11 +566,7 @@ def cmd_start(args) -> int:
             )
             return emit({"action": "start", "stage": n, "errors": errors}, 1)
 
-    others = [
-        k
-        for k, v in state["stage_status"].items()
-        if v == "in_progress" and int(k) != n
-    ]
+    others = [k for k, v in state["stage_status"].items() if v == "in_progress" and int(k) != n]
     if others:
         errors.append(
             err(
@@ -597,9 +584,7 @@ def cmd_start(args) -> int:
         and state["retry_count"] < state["max_retry"]
     )
     if status == "in_progress":
-        errors.append(
-            err("E-ALREADY-STARTED", f"Stage {n} 已处于 in_progress，禁止重复 start")
-        )
+        errors.append(err("E-ALREADY-STARTED", f"Stage {n} 已处于 in_progress，禁止重复 start"))
         return emit({"action": "start", "stage": n, "errors": errors}, 1)
     if status == "completed" and not revision_reentry:
         errors.append(
@@ -627,8 +612,7 @@ def cmd_start(args) -> int:
                 errors.append(
                     err(
                         "E-OUT-OF-ORDER",
-                        f"禁止跳阶段：Stage {s} 未完成（status="
-                        f"{state['stage_status'].get(str(s))}），不能直接 start {n}",
+                        f"禁止跳阶段：Stage {s} 未完成（status={state['stage_status'].get(str(s))}），不能直接 start {n}",
                     )
                 )
                 return emit({"action": "start", "stage": n, "errors": errors}, 1)
@@ -645,11 +629,7 @@ def cmd_start(args) -> int:
         stage=n,
         phase_before=phase_before,
         phase_after=state["phase"],
-        **(
-            {"budget_exceeded": budget["exceeded"]}
-            if budget and budget["exceeded"]
-            else {}
-        ),
+        **({"budget_exceeded": budget["exceeded"]} if budget and budget["exceeded"] else {}),
     )
     payload = {"action": "start", "stage": n, "phase": state["phase"]}
     if budget:
@@ -688,26 +668,16 @@ def budget_watermark(state: dict, op_dir: str, ts: str) -> dict | None:
         "max_wallclock_s": dims["max_wallclock_s"],
         "exceeded": [],
     }
-    if (
-        dims["max_subagent_dispatches"] is not None
-        and dispatches >= dims["max_subagent_dispatches"]
-    ):
+    if dims["max_subagent_dispatches"] is not None and dispatches >= dims["max_subagent_dispatches"]:
         info["exceeded"].append("max_subagent_dispatches")
-    if (
-        dims["max_wallclock_s"] is not None
-        and wallclock is not None
-        and wallclock >= dims["max_wallclock_s"]
-    ):
+    if dims["max_wallclock_s"] is not None and wallclock is not None and wallclock >= dims["max_wallclock_s"]:
         info["exceeded"].append("max_wallclock_s")
     return info
 
 
 def choose_final_artifact(state: dict, ctx: Ctx) -> str | None:
     paths = artifact_paths(state, ctx)
-    if (
-        state["stage_status"].get("4") == "completed"
-        or state.get("scenario") == "optimize"
-    ):
+    if state["stage_status"].get("4") == "completed" or state.get("scenario") == "optimize":
         rel, abs_path = paths["kernel_opt"]
         if os.path.exists(abs_path):
             return rel
@@ -725,9 +695,7 @@ def cmd_complete(args) -> int:
     phase_before = state["phase"]
 
     if state["phase"] in TERMINAL_PHASES:
-        errors.append(
-            err("E-TERMINAL", f"phase={state['phase']} 已终态，禁止 complete")
-        )
+        errors.append(err("E-TERMINAL", f"phase={state['phase']} 已终态，禁止 complete"))
         return emit({"action": "complete", "stage": n, "errors": errors}, 1)
     status = state["stage_status"].get(str(n))
     if status != "in_progress":
@@ -754,11 +722,7 @@ def cmd_complete(args) -> int:
 
     state["stage_status"][str(n)] = "completed"
     next_stage = next(
-        (
-            s
-            for s in state["stage_plan"]
-            if state["stage_status"].get(str(s)) != "completed"
-        ),
+        (s for s in state["stage_plan"] if state["stage_status"].get(str(s)) != "completed"),
         None,
     )
     if next_stage is None:
@@ -830,11 +794,11 @@ def cmd_fail(args) -> int:
 
     status = state["stage_status"].get(str(n))
     if args.reason != "design_revision":
-        if n == 2:
+        if n == 2 and args.reason != "report_repair":
             errors.append(
                 err(
                     "E-STAGE2-REVISION",
-                    "Stage 2 门禁失败本质是检视不通过，走设计修订循环（--reason design_revision，计 retry_count）",
+                    "Stage 2 报告修复用 --reason report_repair；设计不通过用 --reason design_revision",
                 )
             )
             return emit({"action": "fail", "stage": n, "errors": errors}, 1)
@@ -855,11 +819,16 @@ def cmd_fail(args) -> int:
             )
             return emit({"action": "fail", "stage": n, "errors": errors}, 1)
 
+    if args.reason == "report_repair":
+        if n != 2:
+            return emit({"errors": [err("E-VALUE", "report_repair 仅适用于 Stage 2")]}, 1)
+        failures, _, gate_errors = run_gate(2, ctx, None, None)
+        if gate_errors or not failures:
+            return emit({"errors": [err("E-REPORT-VALID", "报告门禁已通过，不构成报告修复")]}, 1)
+
     if args.reason == "design_revision":
         if status not in ("in_progress", "failed", "completed"):
-            errors.append(
-                err("E-NOT-STARTED", f"Stage {n} status={status}，不构成设计修订触发源")
-            )
+            errors.append(err("E-NOT-STARTED", f"Stage {n} status={status}，不构成设计修订触发源"))
             return emit({"action": "fail", "stage": n, "errors": errors}, 1)
         state["stage_status"][str(n)] = "failed"
         state["retry_count"] += 1
@@ -935,11 +904,7 @@ def cmd_fail(args) -> int:
             payload.update({"phase": "DONE", "abort": "stage4_iteration_limit"})
         else:
             if n == 3:
-                reason = (
-                    "BLOCKED_ACCURACY"
-                    if args.fail_type == "precision"
-                    else "BLOCKED_IMPL"
-                )
+                reason = "BLOCKED_ACCURACY" if args.fail_type == "precision" else "BLOCKED_IMPL"
             else:
                 reason = BLOCKED_BY_STAGE[n]
             state["phase"] = "FAILED"
@@ -966,13 +931,9 @@ def cmd_gate(args) -> int:
         ctx.state = {}
     elif not ctx.load(errors):
         return emit({"action": "gate", "stage": args.stage, "errors": errors}, 1)
-    failures, warnings, gate_errors = run_gate(
-        args.stage, ctx, args.meta, args.migration_dir
-    )
+    failures, warnings, gate_errors = run_gate(args.stage, ctx, args.meta, args.migration_dir)
     if gate_errors:
-        return emit(
-            {**gate_payload(args.stage, failures, warnings), "errors": gate_errors}, 1
-        )
+        return emit({**gate_payload(args.stage, failures, warnings), "errors": gate_errors}, 1)
     return emit(gate_payload(args.stage, failures, warnings), 0 if not failures else 1)
 
 
@@ -985,9 +946,7 @@ def cmd_snapshot(args) -> int:
         snapshot_stage_artifacts(ctx.state, ctx, stage)
     ctx.write()
     ctx.timeline("snapshot", phase_after=ctx.state["phase"])
-    return emit(
-        {"action": "snapshot", "artifact_hashes": ctx.state["artifact_hashes"]}, 0
-    )
+    return emit({"action": "snapshot", "artifact_hashes": ctx.state["artifact_hashes"]}, 0)
 
 
 def cmd_verify(args) -> int:
@@ -1080,9 +1039,7 @@ def cmd_repair(args) -> int:
 
     before_keys = set(raw.keys())
     state = gate_lint.state_backfill(raw)
-    schema_failures, _schema_warnings = gate_lint.state_schema_lint(
-        state, ctx.state_path
-    )
+    schema_failures, _schema_warnings = gate_lint.state_schema_lint(state, ctx.state_path)
     fixes = sorted(set(state.keys()) - before_keys)
     # 篡改/漂移检测只报告，不自动修
     drift = []
@@ -1093,14 +1050,10 @@ def cmd_repair(args) -> int:
             drift.append(rel)
     suggestions = []
     if drift:
-        suggestions.append(
-            f"工件漂移：{drift} —— 建议回退对应 Stage 重新验证（勿盲改哈希）"
-        )
+        suggestions.append(f"工件漂移：{drift} —— 建议回退对应 Stage 重新验证（勿盲改哈希）")
     in_progress = [k for k, v in state["stage_status"].items() if v == "in_progress"]
     if len(in_progress) > 1:
-        suggestions.append(
-            f"多个 Stage 同时 in_progress：{in_progress} —— 按 timeline 判定真实阶段，其余置 failed"
-        )
+        suggestions.append(f"多个 Stage 同时 in_progress：{in_progress} —— 按 timeline 判定真实阶段，其余置 failed")
     if fixes and args.apply:
         ctx.state = state
         ctx.write()
@@ -1176,14 +1129,10 @@ def cmd_set(args) -> int:
             perf_iter["last_improvement"] = args.perf_iteration_last_improvement
         if args.perf_iteration_no_improve is not None:
             if args.perf_iteration_no_improve < 0:
-                errors.append(
-                    err("E-VALUE", "--perf-iteration-no-improve 须为非负整数")
-                )
+                errors.append(err("E-VALUE", "--perf-iteration-no-improve 须为非负整数"))
             else:
                 perf_iter["consecutive_no_improvement"] = args.perf_iteration_no_improve
-        if not any(
-            e["code"] == "E-VALUE" and "perf-iteration" in e["message"] for e in errors
-        ):
+        if not any(e["code"] == "E-VALUE" and "perf-iteration" in e["message"] for e in errors):
             state["perf_iteration"] = perf_iter
     # E1.3: 任务级预算（max_wallclock_s / max_subagent_dispatches /
     # max_stage4_experiments；正数或 null=不限，默认见 gate-and-retry.md §2）
@@ -1212,14 +1161,8 @@ def cmd_set(args) -> int:
                 for key, val in budget.items():
                     if val is None:
                         continue
-                    if (
-                        isinstance(val, bool)
-                        or not isinstance(val, (int, float))
-                        or val <= 0
-                    ):
-                        budget_errors.append(
-                            err("E-VALUE", f"budget.{key} 须为正数或 null（不限）")
-                        )
+                    if isinstance(val, bool) or not isinstance(val, (int, float)) or val <= 0:
+                        budget_errors.append(err("E-VALUE", f"budget.{key} 须为正数或 null（不限）"))
                 if not budget_errors:
                     merged = dict(state.get("budget") or {})
                     merged.update(budget)
@@ -1401,9 +1344,7 @@ def cmd_migration_init(args) -> int:
     ctx.state = state
     ctx.write()
     ctx.timeline("migration-init", phase_after=phase, functions=list(funcs))
-    return emit(
-        {"action": "migration-init", "phase": phase, "functions": list(funcs)}, 0
-    )
+    return emit({"action": "migration-init", "phase": phase, "functions": list(funcs)}, 0)
 
 
 def cmd_migration_func(args) -> int:
@@ -1421,21 +1362,15 @@ def cmd_migration_func(args) -> int:
         )
         return emit({"action": "migration-func", "errors": errors}, 1)
     if state["phase"] not in ("SCAFFOLD", "DEV_LOOP"):
-        errors.append(
-            err("E-PHASE-ORDER", f"phase={state['phase']} 下不允许更新函数状态")
-        )
+        errors.append(err("E-PHASE-ORDER", f"phase={state['phase']} 下不允许更新函数状态"))
         return emit({"action": "migration-func", "errors": errors}, 1)
     if args.status not in FUNC_STATUSES:
         errors.append(err("E-VALUE", f"非法函数状态：{args.status}"))
         return emit({"action": "migration-func", "errors": errors}, 1)
     state["functions"][args.name]["status"] = args.status
     ctx.write()
-    ctx.timeline(
-        "migration-func", func=args.name, status=args.status, phase_after=state["phase"]
-    )
-    return emit(
-        {"action": "migration-func", "func": args.name, "status": args.status}, 0
-    )
+    ctx.timeline("migration-func", func=args.name, status=args.status, phase_after=state["phase"])
+    return emit({"action": "migration-func", "func": args.name, "status": args.status}, 0)
 
 
 def cmd_migration_phase(args) -> int:
@@ -1454,9 +1389,7 @@ def cmd_migration_phase(args) -> int:
         if not args.reason:
             errors.append(err("E-VALUE", "FAILED 需要 --reason（BLOCKED_* 码或原因）"))
             return emit({"action": "migration-phase", "errors": errors}, 1)
-    elif target not in order or (
-        target in order and order.index(target) <= order.index(current)
-    ):
+    elif target not in order or (target in order and order.index(target) <= order.index(current)):
         errors.append(
             err(
                 "E-PHASE-ORDER",
@@ -1486,9 +1419,7 @@ def cmd_migration_phase(args) -> int:
     if target == "FAILED":
         state["failure_reason"] = args.reason
     ctx.write()
-    ctx.timeline(
-        "migration-phase", phase_before=current, phase_after=target, reason=args.reason
-    )
+    ctx.timeline("migration-phase", phase_before=current, phase_after=target, reason=args.reason)
     return emit({"action": "migration-phase", "phase": target}, 0)
 
 
@@ -1499,9 +1430,7 @@ def cmd_migration_integrate(args) -> int:
         return emit({"action": "migration-integrate", "errors": errors}, 1)
     state = ctx.state
     if state["phase"] != "INTEGRATE":
-        errors.append(
-            err("E-PHASE-ORDER", f"phase={state['phase']}，须先迁移到 INTEGRATE")
-        )
+        errors.append(err("E-PHASE-ORDER", f"phase={state['phase']}，须先迁移到 INTEGRATE"))
         return emit({"action": "migration-integrate", "errors": errors}, 1)
     if args.status not in ("pass", "fail"):
         errors.append(err("E-VALUE", "--status 只接受 pass|fail"))
@@ -1543,23 +1472,18 @@ def cmd_migration_integrate(args) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="statectl",
-        description="tilelang-op-conductor 确定性状态机 CLI"
-        "（U1 修复：转换校验/计数/门禁/哈希；1.3：timeline 事件流 + timeline-summary）",
+        description="tilelang-op-conductor 确定性状态机 CLI（U1 修复：转换校验/计数/门禁/哈希；1.3：timeline 事件流 + timeline-summary）",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
     def add_dir(sp, required=True):
-        sp.add_argument(
-            "--dir", required=required, help="算子目录（含 .stage_state.json）"
-        )
+        sp.add_argument("--dir", required=required, help="算子目录（含 .stage_state.json）")
 
     sp = sub.add_parser("init", help="按场景路由表生成合法初始状态")
     add_dir(sp)
     sp.add_argument("--project", required=True)
     sp.add_argument("--op", required=True)
-    sp.add_argument(
-        "--scenario", required=True, choices=["new_op", "migration", "optimize"]
-    )
+    sp.add_argument("--scenario", required=True, choices=["new_op", "migration", "optimize"])
     sp.add_argument("--migration-mode", choices=["harness", "plain"])
     sp.add_argument("--requirement", default=None)
     sp.add_argument("--max-retry", type=int, default=3)
@@ -1665,8 +1589,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser(
         "timeline-summary",
-        help="机械汇总 .task_timeline.jsonl（各 Stage attempts/耗时/失败链——"
-        "最终报告「时间线」段与 evolver 根因链的数据源，只读）",
+        help="机械汇总 .task_timeline.jsonl（各 Stage attempts/耗时/失败链——最终报告「时间线」段与 evolver 根因链的数据源，只读）",
     )
     add_dir(sp)
     sp.set_defaults(func=cmd_timeline_summary)
@@ -1689,27 +1612,68 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--status", required=True, choices=sorted(FUNC_STATUSES))
     sp.set_defaults(func=cmd_migration_func)
 
-    sp = msub.add_parser(
-        "phase", help="聚合 phase 迁移（SCAFFOLD→DEV_LOOP→INTEGRATE→DONE）"
-    )
+    sp = msub.add_parser("phase", help="聚合 phase 迁移（SCAFFOLD→DEV_LOOP→INTEGRATE→DONE）")
     sp.add_argument("--dir", required=True)
     sp.add_argument("--phase", required=True, choices=MIG_PHASES)
     sp.add_argument("--reason", default=None)
     sp.set_defaults(func=cmd_migration_phase)
 
-    sp = msub.add_parser(
-        "integrate", help="记录 Stage 5 集成验证结果（pass/fail 计次）"
-    )
+    sp = msub.add_parser("integrate", help="记录 Stage 5 集成验证结果（pass/fail 计次）")
     sp.add_argument("--dir", required=True)
     sp.add_argument("--status", required=True, choices=["pass", "fail"])
     sp.add_argument("--reason", default=None)
     sp.set_defaults(func=cmd_migration_integrate)
+
+    sp = msub.add_parser("ready", help="只读校验依赖图并返回可启动函数")
+    sp.add_argument("--dir", required=True)
+    sp.add_argument("--graph", required=True)
+    sp.set_defaults(func=cmd_migration_ready)
 
     sp = msub.add_parser("show")
     sp.add_argument("--dir", required=True)
     sp.set_defaults(func=cmd_migration_show)
 
     return p
+
+
+def cmd_migration_ready(args) -> int:
+    """Return dependency-ready functions without changing aggregate state."""
+    ctx = MCtx(args)
+    errors = []
+    if not ctx.load(errors):
+        return emit({"errors": errors}, 1)
+    funcs = ctx.state["functions"]
+    try:
+        with open(args.graph, encoding="utf-8") as handle:
+            graph = json.load(handle)
+        if not isinstance(graph, dict) or set(graph) != set(funcs):
+            raise ValueError("graph must cover every extracted function exactly")
+        for name, dependencies in graph.items():
+            if not isinstance(dependencies, list) or any(not isinstance(dep, str) or dep not in funcs for dep in dependencies):
+                raise ValueError(f"invalid dependencies for {name}")
+        visiting, visited = set(), set()
+
+        def visit(name):
+            if name in visiting:
+                raise ValueError("dependency cycle")
+            if name in visited:
+                return
+            visiting.add(name)
+            for dep in graph[name]:
+                visit(dep)
+            visiting.remove(name)
+            visited.add(name)
+
+        for name in graph:
+            visit(name)
+        ready = sorted(
+            name
+            for name, deps in graph.items()
+            if funcs[name]["status"] == "pending" and all(funcs[dep]["status"] == "done" for dep in deps)
+        )
+    except (OSError, ValueError, TypeError) as exc:
+        return emit({"errors": [err("E-DEPENDENCIES", str(exc))]}, 1)
+    return emit({"ready": ready, "phase": ctx.state["phase"]}, 0)
 
 
 def cmd_migration_show(args) -> int:

@@ -47,6 +47,7 @@ import hashlib
 import importlib.util
 import json
 import os
+from pathlib import Path
 import statistics
 import subprocess
 import sys
@@ -82,9 +83,7 @@ def tune_workload_ids() -> list[str]:
     with open(WORKLOAD_INVENTORY, encoding="utf-8") as f:
         inventory = json.load(f)
     return sorted(
-        item["workload_id"]
-        for item in inventory.get("workloads", [])
-        if item.get("kernel_id") == KERNEL_ID and item.get("kind") == "tune"
+        item["workload_id"] for item in inventory.get("workloads", []) if item.get("kernel_id") == KERNEL_ID and item.get("kind") == "tune"
     )
 
 
@@ -115,9 +114,7 @@ def load_runner(impl_path: str, workload_id: str):
     spec.loader.exec_module(module)
     maker = getattr(module, "make_runner", None)
     if not callable(maker):
-        raise AttributeError(
-            f"{impl_path} does not expose make_runner(workload_id); adapt load_runner()"
-        )
+        raise AttributeError(f"{impl_path} does not expose make_runner(workload_id); adapt load_runner()")
     return maker(workload_id)
 
 
@@ -172,6 +169,21 @@ def timestamp_utc() -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def workflow_tools():
+    """Locate repository tools after copying this template into perf_opt/."""
+    for parent in Path(__file__).resolve().parents:
+        directory = parent / ".agents" / "tools"
+        if (directory / "ab_test.py").is_file():
+            modules = []
+            for name in ("ab_test", "execution_receipt"):
+                spec = importlib.util.spec_from_file_location(name, directory / f"{name}.py")
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                modules.append(module)
+            return modules
+    raise RuntimeError("cannot locate .agents/tools from runner path")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--a", default=A_IMPL, help="A side implementation file")
@@ -183,9 +195,17 @@ def main() -> int:
     ap.add_argument("--samples", type=int, default=SAMPLES_PER_ROUND, help="do_bench samples per measurement")
     ap.add_argument("--skip-l0", action="store_true", help="skip the L0 precision regression")
     ap.add_argument("--no-record", action="store_true", help="do not append to perf_records.jsonl")
+    ap.add_argument("--noise", type=float, default=0.03)
+    ap.add_argument("--budget", help="shared task budget; outer execution_receipt reserves the experiment")
+    ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--context-stamp", help="JSON/text stamp of device and toolchain versions")
     args = ap.parse_args()
-    if args.rounds < 1 or args.samples < 1:
-        ap.error("--rounds and --samples must be >= 1")
+    if args.resume and not args.context_stamp:
+        ap.error("--resume requires --context-stamp")
+    if not 0 <= args.noise < 1:
+        ap.error("--noise must be in [0,1)")
+    if args.rounds < 3 or args.samples < 1:
+        ap.error("--rounds must be >=3; --samples must be >=1")
     try:
         safe_component(args.workload)
     except ValueError as exc:
@@ -205,6 +225,13 @@ def main() -> int:
         )
         return 2
 
+    protocol, execution = workflow_tools()
+
+    def check_budget():
+        if args.budget:
+            execution.reserve(args.budget, False)
+
+    check_budget()
     sides = (("A", args.a, args.a_id), ("B", args.b, args.b_id))
     for _, impl, _ in sides:
         if not os.path.isfile(impl):
@@ -226,11 +253,40 @@ def main() -> int:
             print(f"load_runner failed for {label} ({impl}): {exc}")
             return 4
 
-    # Interleaved measurement: A/B/A/B... one measurement per side per round.
+    # Resume complete pairs only; discard an interrupted half-pair.
+    key = {
+        "a": file_sha256(args.a),
+        "b": file_sha256(args.b),
+        "inventory": file_sha256(WORKLOAD_INVENTORY),
+        "runner": file_sha256(__file__),
+        "protocol": file_sha256(protocol.__file__),
+        "python": sys.version,
+        "executable": sys.executable,
+        "environment": {
+            name: os.environ.get(name)
+            for name in ("ASCEND_RT_VISIBLE_DEVICES", "ASCEND_VISIBLE_DEVICES", "PYTHONPATH", "LD_LIBRARY_PATH", "BISHENG_HOME")
+        },
+        "kernel_id": KERNEL_ID,
+        "workload": args.workload,
+        "samples": args.samples,
+        "warmup": WARMUP_MS,
+        "rep": REP_MS,
+        "context": file_sha256(args.context_stamp) if args.context_stamp else None,
+    }
+    checkpoint = Path(LOGS_DIR) / f"pairs_{hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()}.json"
+    # Alternate A/B then B/A to reduce drift, using the shared adjudicator.
     round_medians = {"A": [], "B": []}
     all_samples = {"A": [], "B": []}
-    for rnd in range(1, args.rounds + 1):
-        for label, _, _ in sides:
+    if args.resume and checkpoint.exists():
+        saved = json.loads(checkpoint.read_text())
+        if saved.get("identity") == key:
+            round_medians, all_samples = saved["medians"], saved["samples"]
+    args.rounds = max(args.rounds, len(round_medians["A"]))
+    for rnd in range(len(round_medians["A"]) + 1, args.rounds + 1):
+        check_budget()
+        order = sides if rnd % 2 else tuple(reversed(sides))
+        for label, _, _ in order:
+            check_budget()
             samples = bench_samples_ms(runners[label], args.samples)
             all_samples[label].extend(samples)
             round_medians[label].append(median_us(samples))
@@ -239,40 +295,27 @@ def main() -> int:
                 f"(samples: {', '.join(f'{s * 1000:.3f}' for s in samples)} us)"
             )
 
-    a_us = statistics.median(all_samples["A"])
-    b_us = statistics.median(all_samples["B"])
-    rel_pct = (a_us - b_us) / a_us * 100.0
-    # Paired direction consistency: B faster than A in every interleaved round?
-    paired_b_faster = sum(1 for a, b in zip(round_medians["A"], round_medians["B"]) if b < a)
-    consistent = paired_b_faster == args.rounds
-    if not consistent and rel_pct > 5.0:
-        verdict = "inconsistent"  # pooled median favors B but pairing is not stable
-    elif rel_pct > 5.0:
-        verdict = "improved"
-    elif rel_pct < -5.0:
-        verdict = "regression"
-    else:
-        verdict = "tie"  # inside the noise band: needs the interleaved multi-run protocol
+        execution.atomic_json(checkpoint, {"identity": key, "medians": round_medians, "samples": all_samples})
 
-    print(
-        f"\n| side | impl | candidate_id | rounds | median_us | min_round_us | max_round_us |"
-    )
+    summary = protocol.summarize_pairs({label: [v / 1000 for v in values] for label, values in round_medians.items()}, args.noise)
+    a_us = summary["a_merged_median_ms"] * 1000
+    b_us = summary["b_merged_median_ms"] * 1000
+    rel_pct = -summary["b_rel_change"] * 100
+    paired_b_faster = sum(1 for a, b in zip(round_medians["A"], round_medians["B"]) if b < a)
+    verdict = summary["verdict"]
+    print(json.dumps({"protocol": "interleaved_msprof_v1", "identity": key, **summary}))
+
+    print("\n| side | impl | candidate_id | rounds | median_us | min_round_us | max_round_us |")
     print("|---|---|---|---:|---:|---:|---:|")
     for label, impl, cid in sides:
         meds = round_medians[label]
-        print(
-            f"| {label} | {impl} | {cid} | {len(meds)} | "
-            f"{statistics.median(all_samples[label]):.3f} | {min(meds):.3f} | {max(meds):.3f} |"
-        )
+        print(f"| {label} | {impl} | {cid} | {len(meds)} | {statistics.median(meds):.3f} | {min(meds):.3f} | {max(meds):.3f} |")
     print(
         f"\nB vs A: {rel_pct:+.1f}% (A {a_us:.3f} us -> B {b_us:.3f} us); "
         f"paired direction: B faster in {paired_b_faster}/{args.rounds} rounds; "
         f"verdict: {verdict}"
     )
-    print(
-        "note: |diff| <= 5% is the noise band -- adjudicate with the interleaved "
-        "multi-run protocol (ab_test.py) before recording a winner"
-    )
+    print("note: shared ab_test.py adjudicator used; reuse this verdict without recollecting identical pairs")
 
     if not args.no_record:
         record = {
@@ -285,7 +328,7 @@ def main() -> int:
             "artifact_path": args.b,
             "artifact_sha256": file_sha256(args.b),
             "duration_us": round(b_us, 3),
-            "l0_pass": True,
+            "l0_pass": not args.skip_l0,
             "profiler_output": "none",
             "timestamp": timestamp_utc(),
         }

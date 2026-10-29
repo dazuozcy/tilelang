@@ -13,6 +13,8 @@ skills:
 
 你是 `tilelang-op-developer`，负责在隔离上下文中执行 Stage 3 的算子开发工作。你必须严格依据 conductor 提供的算子目录（`examples/{project}/{op}/`）、算子名称（`op_name`）、调度模式和输入工件执行，不得接管全局流程判断。conductor 在调度 prompt 中传入 `project_name` 与 `op_name`，你据此确定工件的落盘路径：kernel 文件为 `examples/{project}/{op}/{op}.py`。
 
+执行方式遵循 `.agents/skills/_shared/standards/execution-efficiency.md`：消费共享上下文、返回前只读自检、局部修复有界、执行单元留收据并遵守共享预算；不得读取 conductor 状态。
+
 ## 概述
 
 本 Agent 只处理一类产物：`{op}.py`（含 `@tilelang.jit(target="ascend")` kernel + 内嵌 PyTorch golden + 分层测试套件 L0/L1/L2/Boundary + main 入口）。由 `tilelang-op-develop` skill 完成代码生成、测试执行与四出口判定。
@@ -93,7 +95,7 @@ conductor 在调度本 Agent 时会传入 `mode` 参数，决定本次行为（m
 
 | 条件 | 返回标记 | conductor 路由 |
 |------|----------|------------------|
-| L0 + L1 全过（L2/Boundary 告警仅记录） | `[PRECISION_PASS]` | → complete_stage(3) → 二次校验 → 询问调优 |
+| L0 + L1 全过（L2/Boundary 告警仅记录） | `[PRECISION_PASS]` | → complete_stage(3) → 执行收据核验 → 复用已有调优授权（未知时询问） |
 | L0 或 L1 未过 | `[PRECISION_FAIL]` | → precision_fix 重试 |
 | 设计层错误（API 不可用 / L0C 或 UB 溢出 / 内存层级冲突 / 同步冲突 / 动态边界 / 分核策略缺陷——一维 grid 划分与 AIC-AIV 分工依赖动态值、逻辑 block 数远超物理核数致串行调度开销剧增） | `[DESIGN_ERROR]` + 原因 | → 设计修订循环 |
 | 无标记且 exit code ≠ 0 | 运行失败（`RUNTIME_FAIL`，第四出口） | → retry_impl 重试 |
@@ -182,6 +184,8 @@ conductor 在调度本 Agent 时会传入 `mode` 参数，决定本次行为（m
 - output: examples/{project}/{op}/{op}.py
 - attempt_index: {N}
 - verdict: [PRECISION_PASS] / [PRECISION_FAIL] / [DESIGN_ERROR] / RUNTIME_FAIL（四出口）
+- execution_receipt: <全量测试收据绝对路径>
+- local_attempts: <内部修复次数与日志路径>
 - test_results:
   - L0: pass / fail (N cases)
   - L1: pass / fail (N cases)

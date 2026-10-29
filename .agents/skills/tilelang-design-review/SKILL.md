@@ -7,6 +7,8 @@ description: "对 Stage 1 产出的算子设计文档（DESIGN.md）进行风险
 
 迁移来源与阶段衔接遵循 [migration-source.md](../_shared/standards/migration-source.md)。harness 检视须读取 `source_context`，独立核对 Stage 0 转换及当前函数与 public Op 的边界。
 
+> 执行效率与恢复遵循 [execution-efficiency.md](../_shared/standards/execution-efficiency.md)。首次加载后按指纹复用上下文；仅影响执行方式，不跳过最终精度、独立检视或完整 workload 验收。
+
 ## 1. 目标
 
 对 Stage 1 产出的 `DESIGN.md` 进行**风险优先**的检视，生成一份 `REVIEW.md`。`REVIEW.md` 必须包含明确的 `结论: 通过` 或 `结论: 不通过`，以及不通过时的具体修改建议，供 conductor 决定是否进入 Stage 3 或回退 Stage 1 重新设计。

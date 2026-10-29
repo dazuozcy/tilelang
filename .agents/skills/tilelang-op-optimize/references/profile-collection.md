@@ -20,7 +20,7 @@ TileOPs 迁移/集成场景（本地 A5 算子已集成时）读取迁移后的 
 
 ## 2. 逐 kernel 采集 baseline 并排序
 
-一个 optimizer subagent 逐个 kernel 执行。对当前 kernel 的**所有** `tune` workload 串行采集 baseline，确认每项测量有效后再决定调优顺序：优先实测耗时较大、瓶颈明确且可能有结构性收益的大 shape；随后尽早处理小 shape、其他 dtype、尾块和资源临界案例；其余按实测瓶颈与收益机会排序。排序与理由写入 `opt_log.md`，不得因排序跳过 workload。每个 workload 完成迭代后才尝试核内合并，并复测当前 kernel 的全部 `tune` workload。
+一个 optimizer subagent 逐个 kernel 执行。对当前 kernel 的**所有** `tune` workload 串行采集 baseline，确认每项测量有效后再决定调优顺序：优先实测耗时较大、瓶颈明确且可能有结构性收益的大 shape；随后尽早处理小 shape、其他 dtype、尾块和资源临界案例；其余按实测瓶颈与收益机会排序。排序与理由写入 `opt_log.md`，不得因排序跳过 workload。按 execution-efficiency.md §5 分批探索和合并，每批验收复测当前 kernel 的全部 `tune` workload；最终覆盖集合不缩减。
 
 ---
 

@@ -7,6 +7,8 @@ description: "根据算子需求生成 TileLang-Ascend 算子设计文档（DESI
 
 迁移来源与阶段衔接遵循 [migration-source.md](../_shared/standards/migration-source.md)。harness 的 `source_context` 与 `source_op_path` 一起消费；先区分 public Op 与内部函数契约，再执行迁移分析。
 
+> 执行效率与恢复遵循 [execution-efficiency.md](../_shared/standards/execution-efficiency.md)。首次加载后按指纹复用上下文；仅影响执行方式，不跳过最终精度、独立检视或完整 workload 验收。
+
 ## 1. 目标
 
 根据算子需求信息，生成一份完整的 TileLang-Ascend 算子设计文档（`DESIGN.md`），涵盖以下核心决策：
@@ -46,13 +48,9 @@ description: "根据算子需求生成 TileLang-Ascend 算子设计文档（DESI
 
 **提问规则（必须严格遵守）**：
 1. **优先使用调用方传入的字段**：若调用方（如 `@tilelang-op-conductor` 通过 designer 传入 `op_requirements` 结构）已经提供了字段值，**全部跳过提问**，直接进入技术约束检测和 DESIGN.md 生成
-2. **每次只询问一个字段**：使用 `question` 工具时，`questions` 数组中只包含一个元素
-3. **按表格顺序依次询问**：算子名称 → 数学公式 → 输入张量规格 → 输出张量规格 → 编程模式偏好
-4. **已提供的字段跳过**：如果用户在初始请求中已提供某个字段的值，跳过该字段继续下一个
-5. **示例**：
-   - 第 1 次询问：只问"数学公式"
-   - 用户回答后，第 2 次询问：只问"输入张量规格"
-   - 以此类推
+2. **批量补齐关键缺项**：一次询问全部无法从标准语义或已提供来源推导的字段；可推导值记录依据。
+3. **模式默认值**：用户未约束时采用 simt，GEMM 主导时论证 mixed；不要为默认模式另行追问。
+4. **已提供字段跳过**，复用调用方已确认的语义和授权。
 
 **⚠️ 当被 conductor → designer Subagent 链路调度时**：
 - designer 会把 conductor 在 Primary 上下文预检收集到的 `op_requirements` 完整传入

@@ -1,0 +1,89 @@
+# moe.yaml -- manifest registry for the 'moe' family (Ascend A5).
+#
+# Entries are added per-op through the add-ascend-op flow (tilelang-op-conductor
+# Stage 0 scaffolding); 910B entries are deliberately not ported. Schema:
+#
+#   <OpClassName>:
+#     ref_api: "reference API"
+#     family: <family>
+#     status: implemented
+#     signature:
+#       inputs:  {<name>: {dtype: "<dtype expr>", shape: "[dims]"}}
+#       outputs: {<name>: {dtype: "<dtype expr>", shape: "[dims]"}}
+#       params:  {<name>: {type: <py-type>, default: <value>}}
+#       shape_rules:
+#         - "<rule expr>"
+#     workloads:                                # multi-input rows: dim fields + dtypes + label
+#       - {<dim>: <value>, ..., dtypes: [...], label: "<name>"}
+#     roofline:
+#       vars: {<var>: "<python expr over workload dims>"}
+#       flops: "<python expr>"
+#       bytes: "<python expr>"
+#     source:                                   # generated-code locations (A5 paths)
+#       kernel: src/tileops/_kernels/<family>/<op>/<op>.py
+#       kernel_map: {<key>: <KernelClassName>}
+#       op: src/tileops/_ops/<family>/<op>.py
+#       test: tests/ops/test_<op>.py
+#       bench: benchmarks/ops/bench_<op>.py
+#       bench_manifest_driven: true
+
+IndexedExpertMLPFwdOp:
+  ref_api: "vllm.model_executor.layers.fused_moe.fused_moe.fused_experts"
+  family: moe
+  status: implemented
+
+  signature:
+    inputs:
+      hidden_states: {dtype: "float16 | bfloat16", shape: "[T, H]", contiguous: true}
+      w_gate_up: {dtype: "same_as(hidden_states)", shape: "[E, 2 * F, H]", contiguous: true}
+      w_down: {dtype: "same_as(hidden_states)", shape: "[E, H, F]", contiguous: true}
+      topk_weights: {dtype: "float32", shape: "[T, K]", contiguous: true}
+      topk_ids: {dtype: "int32", shape: "[T, K]", contiguous: true}
+    outputs:
+      output: {dtype: "same_as(hidden_states)", shape: "[T, H]", contiguous: true}
+    params:
+      routed_scaling_factor: {type: float, default: 1.0}
+    shape_rules:
+    - "T > 0"
+    - "K > 0"
+    - "K <= E"
+    - "H > 0"
+    - "F > 0"
+    - "routed_scaling_factor > 0"
+    - "all(0 <= topk_ids[t, k] < E for t in range(T) for k in range(K))"
+
+  workloads:
+    # DeepSeek-V3: H=7168, F=2048, E=256, K=8
+  - {T: 1, E: 256, K: 8, H: 7168, F: 2048, dtypes: [float16, bfloat16], label: "ds-v3-t1"}
+  - {T: 32, E: 256, K: 8, H: 7168, F: 2048, dtypes: [float16, bfloat16], label: "ds-v3-t32"}
+  - {T: 64, E: 256, K: 8, H: 7168, F: 2048, dtypes: [float16, bfloat16], label: "ds-v3-t64"}
+    # Qwen3-235B-A22B: H=4096, F=1536, E=128, K=8
+  - {T: 32, E: 128, K: 8, H: 4096, F: 1536, dtypes: [float16, bfloat16], label: "qwen3-235b-t32"}
+
+  roofline:
+    # Only the experts topk_ids selects are read (route-major dispatch copies one
+    # expert's weights once per block_m-sized route group).
+    vars:
+      routes: "T * K"
+      # One route: the gate/up GEMM (2 * 2F * H), the silu_and_mul epilogue
+      # (gate*sigmoid(gate)*up ≈ 6 flops per F) and the down GEMM (2 * H * F).
+      expert_mlp_flops: "6 * F * H + 6 * F"
+      elem_bytes: "2"  # float16 | bfloat16
+      # Data-dependent: the distinct experts this call's routing selects. The Op
+      # evaluates it per call from topk_ids (roofline_data_terms); the manifest
+      # records the formula, not a fixed number.
+      active_experts: "distinct(topk_ids)"
+    flops: "routes * (expert_mlp_flops + 2 * H) + (T * H if routed_scaling_factor != 1.0 else 0)"
+    bytes: "active_experts * 3 * F * H * elem_bytes + 2 * T * H * elem_bytes + 2 * T * K * 4"
+
+  source:
+    kernel: src/tileops/_kernels/moe/indexed_expert_mlp/indexed_expert_mlp.py
+    kernel_map:
+      route_stats: IndexedRouteStatsKernel
+      expert_gate_up: IndexedExpertGateUpKernel
+      expert_down: IndexedExpertDownKernel
+      weighted_reduce: IndexedWeightedReduceKernel
+    op: src/tileops/_ops/moe/indexed_expert_mlp.py
+    test: tests/ops/test_indexed_expert_mlp.py
+    bench: benchmarks/ops/bench_indexed_expert_mlp.py
+    bench_manifest_driven: true

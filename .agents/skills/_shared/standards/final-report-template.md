@@ -26,6 +26,7 @@
 
 ## 成本（预算水位，E1.3）
 - dispatches: {timeline_summary.dispatches}    wallclock_s: {timeline_summary.elapsed_s}    budget: {各维度 used/max 摘要；未设置预算时标 未设置}
+- execution: <执行收据汇总：内部尝试/实验总数、复用次数、验证执行耗时；人工等待/重复验证/恢复耗时只从有对应证据的 session 提取，否则 N/A；并行阶段耗时不相加当墙钟>
 - 各 Stage 耗时: <从 timeline_summary.stages 拼接「stage: attempts N 次 / duration_s_total X」；纯拼接，无新数据>
 
 ## 进化结果（自进化）

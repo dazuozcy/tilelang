@@ -7,6 +7,8 @@ description: "对精度已通过的 TileLang-Ascend 算子做 Stage 4 性能调�
 
 迁移来源与阶段衔接遵循 [migration-source.md](../_shared/standards/migration-source.md)。TileOPs 只从目标 A5 benchmark 展开 workload；GPU 源仓 API 与性能数值不得代替本地入口和测量。
 
+> 执行效率与恢复遵循 [execution-efficiency.md](../_shared/standards/execution-efficiency.md)。首次加载后按指纹复用上下文；仅影响执行方式，不跳过最终精度、独立检视或完整 workload 验收。
+
 ## 目标
 
 对 Stage 3 精度通过的 `{op}.py` 做真实性能调优，产出：
@@ -98,18 +100,18 @@ Phase 2 对每个 kernel 的 tune workload 按 Phase 1 排序逐个执行多轮�
 每轮执行：
 
 1. 固定本轮 base：当前 best 版本和它的最新测量数据（do_bench 时延 + msprof_detail/npusim 深挖，如有）。
-2. 读取 [iteration-diagnosis.md](references/iteration-diagnosis.md) 与 [bottleneck-patterns.md](references/bottleneck-patterns.md)（**每轮必读**——模式库是候选优化点的直接来源，且模式库只有在被读的位置上才不会遗忘），基于 base 测量数据整理当前现象。
+2. 读取 [iteration-diagnosis.md](references/iteration-diagnosis.md) 与 [bottleneck-patterns.md](references/bottleneck-patterns.md)（首次必读，后续轮复用已载内容；文件指纹或瓶颈类别变化时刷新相关部分），基于 base 测量数据整理当前现象。
 3. **先看表再分析**（B2 结构化回流）：从 `perf_opt/perf_records.jsonl` 汇总「候选 vs current best」对比表（do_bench(msprof) 时延（µs）、msprof_detail pipe ratios、npusim 周期数据（如有）、L0 结果）作为本轮分析上下文——把「读散文日志复盘」变成「看表决策」，也直接提升 `[DESIGN_LIMIT]` 设计层归因的证据质量。
 4. 从同一个 base 派生多个实验分支：`perf_opt/{op}_round{iter}_{opt_id}.py`。
 5. 每个实验分支只改一个主要优化点。
 6. 每个实验分支跑 L0 精度回归。
 7. 对精度通过的分支，用 `do_bench(fn, backend="msprof")` 采集目标 kernel 性能；**验证完成后向 `perf_records.jsonl` 追加一行**（含 `parent_id` = 派生来源候选；append-only，禁止改写/删除既有行）。
 8. 若结构性分支正确性通过且方向有效，先围绕该结构暴露的关键参数做一轮 coarse autotune 或等价手动粗搜；再检查 autotune top-k 与 winner 邻域，必要时做手动/脚本精搜，最后把精搜 winner 作为该结构分支的候选版本复测。
-9. 在同一 `kernel_id + workload_id` 内比较 valid 分支；按 do_bench(msprof) 时延（µs）选择该 workload 的 winner；打平时用负载均衡、资源占用和代码复杂度决胜。**<5% 差异与平区决胜（T-2）**：小 kernel（时延 <20µs）或逼近带宽/搬运地板的 workload，候选差异 <5% 量级时须先经交错 A/B/A/B 多 run 协议裁决——调用 `python3 .agents/tools/ab_test.py`（do_bench(msprof) 交错多 run 封装：候选与基线交替次序、合并中位数比较、配对方向一致性判定；参数以其 `--help` 为准），按其 JSON 输出裁决采纳/tie/inconclusive；未过协议的 <5% 增益不得记为 winner。
-10. **每个 workload 完成调优后合并一次**：先将 winner 的改动直接合入同一个 `@T.prim_func`；若本 kernel 其他 tune workload 出现可信回退，则尝试在该 kernel 内按可见 shape/dtype/参数设置条件路径。分支的编译期折叠、buffer 作用域、精度与资源限制须用当前工具链实测；不把新分派放到 Python factory、默认配置、op 层或 wrapper。合并后的实际 kernel 须复测本 kernel 的全部 tune workload（性能与精度）和 smoke workload（仅精度），通过后才更新已合并 current best；失败则保留此前版本并记录未能安全合并。后续 workload 从此已合并版出发。
+9. 在同一 `kernel_id + workload_id` 内比较 valid 分支；按 do_bench(msprof) 时延（µs）选择该 workload 的 winner；打平时用负载均衡、资源占用和代码复杂度决胜。**<5% 差异与平区决胜（T-2）**：小 kernel（时延 <20µs）或逼近带宽/搬运地板的 workload，候选差异 <5% 量级时须先经交错 A/B/A/B 多 run 协议裁决——优先复用实验 runner 的同协议裁决（execution-efficiency.md §5）；尚无合格采样时调用 `python3 .agents/tools/ab_test.py`（do_bench(msprof) 交错多 run 封装：候选与基线交替次序、合并中位数比较、配对方向一致性判定；参数以其 `--help` 为准），按其 JSON 输出裁决采纳/tie/inconclusive；未过协议的 <5% 增益不得记为 winner。
+10. **默认按批次合并验收**（execution-efficiency.md §5；最多 3 个 workload 或预算边界先到者；共享分支冲突时退回单项合并）：批次内分支仅作暂定候选，不更新已验收 best。批次完成后，先将 winner 的改动直接合入同一个 `@T.prim_func`；若本 kernel 其他 tune workload 出现可信回退，则尝试在该 kernel 内按可见 shape/dtype/参数设置条件路径。分支的编译期折叠、buffer 作用域、精度与资源限制须用当前工具链实测；不把新分派放到 Python factory、默认配置、op 层或 wrapper。合并后的实际 kernel 须复测本 kernel 的全部 tune workload（性能与精度）和 smoke workload（仅精度），通过后才更新已合并 current best；失败则保留此前版本并记录未能安全合并。后续 workload 从此已合并版出发。
 11. 若所有分支无提升、无效或阻塞，current best 保持不变。
-12. 记录本轮现象、候选优化点、实验分支、性能、精度、当前 kernel 全部 tune workload 的合并非回退检查、smoke 精度检查和 winner/rollback 结论；**本轮记录必须含第 3 步的结构化对比表**（数据来自 perf_records.jsonl 与 `perf_opt/profiles/`——gate 4 `S4-OPTLOG-COMPTABLE` 机械校验其存在性）；经 ab_test 裁决的决策附其 JSON 摘要。
-13. 未满足当前 workload 的终止条件则进入下一轮；完成时在 inventory 写 `tuning_status=winner_merged/no_gain/merge_blocked`，再处理排序中的下一个 tune workload。只有所有 tune workload 均有结论且最终全量复测完成，才能报告流程已完整执行；若存在 `merge_blocked`、目标未达标或预算中断，须如实报告，不能以其它 workload 的成功代替，也不能把流程完成等同于性能目标达成。
+12. 批次未验收的 workload 标记 pending，不能提前写 winner_merged。记录本轮现象、候选优化点、实验分支、性能、精度、当前 kernel 全部 tune workload 的合并非回退检查、smoke 精度检查和 winner/rollback 结论；**本轮记录必须含第 3 步的结构化对比表**（数据来自 perf_records.jsonl 与 `perf_opt/profiles/`——gate 4 `S4-OPTLOG-COMPTABLE` 机械校验其存在性）；经 ab_test 裁决的决策附其 JSON 摘要。
+13. 未满足当前 workload 的终止条件则进入下一轮；完成时在 inventory 写 `tuning_status=winner_merged/no_gain/merge_blocked`，再处理排序中的下一个 tune workload；批次内暂定结果不得提前登记为已合并。max_rounds 按 workload 记录，max_experiments 是跨全部 kernel/workload 的任务总额；每个配置先预占共享账本。只有所有 tune workload 均有结论且最终全量复测完成，才能报告流程已完整执行；若存在 `merge_blocked`、目标未达标或预算中断，须如实报告，不能以其它 workload 的成功代替，也不能把流程完成等同于性能目标达成。
 
 终止条件：
 

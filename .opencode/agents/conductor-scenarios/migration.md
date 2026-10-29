@@ -38,7 +38,7 @@ disable: true
 ## 5. 设计修订的迁移增补
 
 - 设计修订（路径 A/B/C 任何一条）重调度 designer 时**必须传入 `source_op_path`**——若错误指向 §0，designer 需重新读源码重做迁移分析。
-- 修订后的新 `DESIGN.md` 重新进入 Stage 2 时，重新执行**含维度 0 的 9 维度检视**（含维度 8 算法优化分析）。
+- 修订后的新 `DESIGN.md` 重新进入 Stage 2 时，保留**含维度 0 的 9 维度检视**记录（含维度 8 算法优化分析）；按 execution-efficiency.md §2 对变更及受影响依赖重点重验，未变项引用有效旧证据。
 
 ## 6. plain 子模式（普通 GPU 仓，`migration_mode=plain`）
 
@@ -68,4 +68,4 @@ INIT --> DESIGN --> REVIEW --> DEVELOP --> TUNING(可选) --> DONE
 
 - **无 Stage 0 / Stage 5**（不调度 scaffolder / integrator；`statectl start 0/5` 会被 `E-NOT-IN-PLAN` 拦截）。
 - **无结构化用例仓**：精度门禁 = Stage 3 内嵌 L0/L1（L0/L1 失败阻塞，L2/Boundary 告警不阻塞）。
-- Stage 3 返回 `[PRECISION_PASS]` 且二次校验通过后，**询问是否调优**：流程与调优信息收集同 `conductor-scenarios/new-op.md` §5（两场景共用）。
+- Stage 3 返回 `[PRECISION_PASS]` 且执行收据核验通过后，**复用已有调优授权，未知时才询问是否调优**：流程与调优信息收集同 `conductor-scenarios/new-op.md` §5（两场景共用）。

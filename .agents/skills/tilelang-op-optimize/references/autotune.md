@@ -91,7 +91,7 @@ Phase 2 的实验分支执行（L0 回归 → do_bench(msprof) A/B 测量 → pe
 
 1. **首轮生成**：先建立 `workload_inventory.json`（benchmark 展开或用户指定 workload），再从模板 [run_experiments_template.py](run_experiments_template.py) 拷贝到 `perf_opt/run_experiments.py`，适配 `kernel_id`、被测 kernel 的构造方式（`load_runner`）与 A/B 实现文件；模板只测量 inventory 中该 kernel 的 tune workload，smoke 精度回归另按 skill 执行。
 2. **后续轮直接调用**：模板对同一 workload 下的两个实现（baseline/current best 与候选）做 do_bench(msprof) **交错重复测量**（A/B/A/B 次序、每轮多次采样取中位），输出相对比较表；脚本逐测量追加性能记录（append-only，字段契约 signal-registry §5：`duration_us` = 毫秒 ×1000、`profiler_output`）。
-3. **决策留在 agent**：读表决策 winner/rollback/下一轮候选——脚本只执行不判断；`<5%` 差异与平区决胜仍按 SKILL.md Phase 2 第 9 步走 `ab_test.py` 交错多 run 协议（do_bench(msprof) 封装）。
+3. **决策留在 agent**：读表决策 winner/rollback/下一轮候选——脚本只执行不判断；runner 与 `ab_test.py` 共用裁决函数；已有合格交错 pairs 直接复用，inconclusive 才在剩余预算内追加 pairs。使用 `--resume --context-stamp <实际环境戳>` 恢复完整 pairs；通过外层 execution_receipt 的 `--experiment --budget` 预占每个候选配置，并将同一预算路径以 `--budget` 传入 runner（do_bench(msprof) 封装）。
 4. 收益：单轮 agent 交互轮次下降 60%+；大工件会话超限类失败（VP-2026-0021：两次空返回各耗 1579s/930s，旧栈实证）被根治——长链路工具调用收敛为一次脚本执行。
 5. 脚本输出与 perf_records.jsonl 对账（append-only 纪律不变），gate 4 机械校验照常生效。
 

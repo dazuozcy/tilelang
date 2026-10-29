@@ -12,6 +12,8 @@ skills:
 
 你是 `tilelang-op-integrator`，负责在隔离上下文中执行迁移场景（harness 模式）的 Stage 5 集成验证。conductor 在调度 prompt 中传入集成参数；你据此完成集成、验证与受控调试，返回三态判定。你不做全局编排，不定义下一阶段或重试策略。
 
+执行方式遵循 `.agents/skills/_shared/standards/execution-efficiency.md`：消费共享上下文、返回前只读自检、局部修复有界、执行单元留收据并遵守共享预算；不得读取 conductor 状态。
+
 ## 概述
 
 Stage 1/3 产出的独立交付件（`examples/{op_slug}/{func}/DESIGN.md` 设计文档与 `{func}.py` kernel，kernel 已通过 L0/L1 内嵌测试）需要接入 TileOPs 端到端框架（wrapper / Kernel class / Op class / tests / bench），并用 TileOPs 既有用例做集成期验证。本 Agent 负责这一步：
@@ -71,6 +73,7 @@ python .agents/skills/add-ascend-op/scripts/integrate_kernel.py --meta <meta_pat
 ```
 
 - 脚本幂等；重复运行安全（kernel 与 `{func}_DESIGN.md` 均整文件覆盖）。
+- 正常落位通过 `execution_receipt.py run --reuse --suite integration-files` 包装上述命令：`--input` 声明 meta、集成脚本及其辅助模块、全部待集成函数 kernel/DESIGN 和环境戳；`--output` 声明全部落位 kernel/DESIGN、wrapper 与脚本修改的其他目标文件。先核对脚本实际输出集合再启用复用，不能只登记其中部分；无法完整枚举时直接运行原命令。获有效收据可跳过重复落位，但下面的完整 report 仍执行，不能复用旧的运行时结论。设备操作使用 Primary 传入的同一全局设备锁与共享预算。
 - 编程模式以最终 Stage 3 kernel 文件头 docstring 声明的 `programming_mode`（`simt|simd|mixed` + `auto_schedule: yes|no`）为准，在 report 前核对与 DESIGN.md 一致；重复集成也必须重新核对；不得从最初 DESIGN 或算子名称猜测模式。（历史注记：旧 npuir 栈的 ASCEND_MODE/Kernel.ascend_mode 机制在 tilelang-fork 不存在，已删除。）
 - 若最终产物未明确声明模式或声明冲突，修正产物后重新集成。若同一 Kernel 类的函数混用不同编程模式，当前自动集成不支持类级模式字段；报告 `[INTEGRATE_FAIL]` 并交回设计逐调用模式作用域，不得给整个类强行填一个模式或原样重试。
 - 脚本同时把每个函数的 Stage 1 交付件 `examples/{op_slug}/{func}/DESIGN.md` 复制为集成包内 `{func}_DESIGN.md`，与集成 kernel 文件同目录。

@@ -7,6 +7,8 @@ description: "根据冻结的 DESIGN.md 生成算子实现（{op}.py：kernel + 
 
 迁移来源与阶段衔接遵循 [migration-source.md](../_shared/standards/migration-source.md)。harness 开发消费 `source_context`，golden 对应当前内部函数；保持目标 wrapper 的符号、参数及返回结构。
 
+> 执行效率与恢复遵循 [execution-efficiency.md](../_shared/standards/execution-efficiency.md)。首次加载后按指纹复用上下文；仅影响执行方式，不跳过最终精度、独立检视或完整 workload 验收。
+
 ## 1. 目标
 
 根据 Stage 1 冻结的 `DESIGN.md` 与 Stage 2 通过的 `REVIEW.md`，生成算子实现文件 `{op}.py`（含 `@tilelang.jit(target="ascend")` kernel + 内嵌 PyTorch golden + main 入口），执行测试，并返回四出口判定（[PRECISION_PASS] / [PRECISION_FAIL] / [DESIGN_ERROR] / RUNTIME_FAIL）供 conductor 路由。
@@ -53,7 +55,7 @@ description: "根据冻结的 DESIGN.md 生成算子实现（{op}.py：kernel + 
 
 ### Phase 4：执行测试
 1. 跑 L0：`python {op}.py --level L0`。
-2. L0 通过后扩展 L1/L2/Boundary 并跑全量 `--level all`。
+2. L0 通过后扩展 L1/L2/Boundary，经 execution_receipt runner 跑全量 `--level all` 并返回收据路径（execution-efficiency.md §3）；L0/L1 失败必须体现在测试入口的退出码中。
 3. 收集结果：max_diff、失败用例 shape、层级。
 
 ### Phase 5：四出口判定与返回

@@ -40,9 +40,7 @@ TEMPLATE_BRACE_RE = re.compile(r"\{[^{}\n]*[\u4e00-\u9fff][^{}\n]*\}")
 TEMPLATE_ANGLE_RE = re.compile(r"<[^<>\n]*[\u4e00-\u9fff][^<>\n]*>")
 # Repo-relative path tokens referenced in prose, e.g. docs/Tilelang.language/xxx
 # (full-width punctuation excluded so trailing prose is not swallowed)
-REF_PATH_RE = re.compile(
-    r"(?:docs|examples|testing|\.agents)/[^\s`'\"<>()\[\]（）【】：，。；、！？]+"
-)
+REF_PATH_RE = re.compile(r"(?:docs|examples|testing|\.agents)/[^\s`'\"<>()\[\]（）【】：，。；、！？]+")
 HEADING_RE = re.compile(r"^(#{1,6})\s+([0-9]+(?:\.[0-9]+)*)[.\s、)：:]", re.M)
 
 
@@ -128,11 +126,7 @@ def split_sections(text: str) -> tuple[dict[str, str], dict[str, str]]:
 
 def region(sections: dict[str, str], prefix: str) -> str:
     """Merge section `prefix` bodies with all subsection bodies."""
-    parts = [
-        body
-        for num, body in sections.items()
-        if num == prefix or num.startswith(prefix + ".")
-    ]
+    parts = [body for num, body in sections.items() if num == prefix or num.startswith(prefix + ".")]
     return "\n".join(parts)
 
 
@@ -217,11 +211,7 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
         )
 
     sections, headings = split_sections(text)
-    missing = [
-        num
-        for num in DESIGN_REQUIRED_SECTIONS
-        if num not in sections or not region_all(sections, headings, num).strip()
-    ]
+    missing = [num for num in DESIGN_REQUIRED_SECTIONS if num not in sections or not region_all(sections, headings, num).strip()]
     if missing:
         failures.append(
             _fail(
@@ -238,22 +228,17 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
                 _fail(
                     "S1-MIG-S0",
                     design_path,
-                    "迁移任务缺少 §0 必需小节："
-                    + "、".join(f"§{n}" for n in mig_missing),
+                    "迁移任务缺少 §0 必需小节：" + "、".join(f"§{n}" for n in mig_missing),
                 )
             )
         for n in DESIGN_MIG_RECOMMENDED:
             if n not in sections:
-                warnings.append(
-                    _warn("S1-MIG-S0", design_path, f"建议补充迁移小节 §{n}")
-                )
+                warnings.append(_warn("S1-MIG-S0", design_path, f"建议补充迁移小节 §{n}"))
 
     # --- §1.6.0 research 4 questions + baseline + conclusion literal ---
     r160 = region_all(sections, headings, "1.6.0")
     if r160.strip():
-        missing_q = [
-            name for name, kws in RESEARCH_4Q if not all(kw in r160 for kw in kws)
-        ]
+        missing_q = [name for name, kws in RESEARCH_4Q if not all(kw in r160 for kw in kws)]
         if missing_q:
             failures.append(
                 _fail(
@@ -286,9 +271,7 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
         ("1.6.3", "布局决策结论"),
     ):
         if sub in sections and literal not in sections[sub]:
-            failures.append(
-                _fail("S1-SECT-CONCL", design_path, f"§{sub} 缺少「{literal}」结论行")
-            )
+            failures.append(_fail("S1-SECT-CONCL", design_path, f"§{sub} 缺少「{literal}」结论行"))
 
     # --- §1.6.1 equivalence machine verification (D-1, S1-EQUIV-EXEC) ---
     # When adopted optimizations exist, the prose equivalence argument must
@@ -329,9 +312,7 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
     # --- §2 programming mode ---
     sec2 = region_all(sections, headings, "2")
     if sec2.strip() and not re.search(r"simt|simd|mixed", sec2):
-        failures.append(
-            _fail("S1-MODE", design_path, "§2 编程模式选型缺少 simt/simd/mixed 结论")
-        )
+        failures.append(_fail("S1-MODE", design_path, "§2 编程模式选型缺少 simt/simd/mixed 结论"))
 
     # --- §5 core-split 3 elements (fall back to whole doc, warn if moved) ---
     # Element semantics per _shared/standards/core-split-strategy.md (A5):
@@ -361,10 +342,7 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
                 )
             else:
                 failures.append(_fail(rule_id, design_path, f"§5 缺分核三要素{desc}"))
-    if "分核" not in sec5 or not (
-        ("AIC" in sec5 and "AIV" in sec5)
-        and any(kw in sec5 for kw in CORES_PLAN_KEYWORDS)
-    ):
+    if "分核" not in sec5 or not (("AIC" in sec5 and "AIV" in sec5) and any(kw in sec5 for kw in CORES_PLAN_KEYWORDS)):
         failures.append(
             _fail(
                 "S1-CORES-PLAN",
@@ -377,13 +355,9 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
     sec8 = region_all(sections, headings, "8")
     if sec8.strip():
         if "olden" not in sec8:  # matches Golden/golden
-            failures.append(
-                _fail("S1-GOLDEN-PLAN", design_path, "§8 验证方案缺少 Golden 函数说明")
-            )
+            failures.append(_fail("S1-GOLDEN-PLAN", design_path, "§8 验证方案缺少 Golden 函数说明"))
         if "L0" not in sec8:
-            failures.append(
-                _fail("S1-L0-PLAN", design_path, "§8 验证方案缺少 L0 门槛测试计划")
-            )
+            failures.append(_fail("S1-L0-PLAN", design_path, "§8 验证方案缺少 L0 门槛测试计划"))
 
     # --- referenced repo paths must exist (negative-assertion evidence rule) ---
     failures.extend(_ref_path_failures(text, design_path, repo_root, "S1-REF-PATHS"))
@@ -394,9 +368,7 @@ def design_lint(design_path: str, migration: bool, repo_root: str):
 # Stage 2: REVIEW.md lint
 # ---------------------------------------------------------------------------
 
-CONCLUSION_RE = re.compile(
-    r"^\s*(?:\*\*)?结论(?:\*\*)?\s*[:：]\s*(通过|不通过)\s*$", re.M
-)
+CONCLUSION_RE = re.compile(r"^\s*(?:\*\*)?结论(?:\*\*)?\s*[:：]\s*(通过|不通过)\s*$", re.M)
 DIM_HEADING_RE = r"^#{1,4}\s*%s[.、\s]"
 NEXT_HEADING_RE = re.compile(r"^#{1,4}\s*[0-9]+[.、\s]", re.M)
 
@@ -430,17 +402,13 @@ def review_lint(review_path: str, migration: bool):
         )
 
     required_dims = list(range(0, 9)) if migration else list(range(1, 9))
-    missing_dims = [
-        k for k in required_dims if not re.search(DIM_HEADING_RE % k, text, re.M)
-    ]
+    missing_dims = [k for k in required_dims if not re.search(DIM_HEADING_RE % k, text, re.M)]
     if missing_dims:
         failures.append(
             _fail(
                 "S2-DIMS",
                 review_path,
-                "缺少检视维度章节："
-                + "、".join(f"维度 {k}" for k in missing_dims)
-                + "（迁移任务须 9 维度，非迁移 8 维度）",
+                "缺少检视维度章节：" + "、".join(f"维度 {k}" for k in missing_dims) + "（迁移任务须 9 维度，非迁移 8 维度）",
             )
         )
 
@@ -457,11 +425,7 @@ def review_lint(review_path: str, migration: bool):
                 )
             )
     else:
-        warnings.append(
-            _warn(
-                "S2-DIM8-EVIDENCE", review_path, "未找到维度 8 章节，无法核对复核证据"
-            )
-        )
+        warnings.append(_warn("S2-DIM8-EVIDENCE", review_path, "未找到维度 8 章节，无法核对复核证据"))
 
     if migration:
         dim0_body = _dim_body(text, 0)
@@ -507,11 +471,7 @@ def _collect_torch_aliases(tree: ast.AST) -> set[str]:
                 root = item.name.split(".")[0]
                 if root == "torch":
                     aliases.add(item.asname or "torch")
-        elif (
-            isinstance(node, ast.ImportFrom)
-            and node.module
-            and node.module.split(".")[0] == "torch"
-        ):
+        elif isinstance(node, ast.ImportFrom) and node.module and node.module.split(".")[0] == "torch":
             for item in node.names:
                 aliases.add(item.asname or item.name)
     return aliases
@@ -535,16 +495,12 @@ def _jit_decorators(tree: ast.AST):
             target = None
             if isinstance(dec, ast.Call):
                 target = dec.func
-            elif isinstance(
-                dec, (ast.Attribute, ast.Name)
-            ):  # bare @tilelang.jit / @jit
+            elif isinstance(dec, (ast.Attribute, ast.Name)):  # bare @tilelang.jit / @jit
                 target = dec
             if target is None:
                 continue
             if isinstance(target, ast.Attribute) and target.attr == "jit":
-                if isinstance(target.value, ast.Name) and (
-                    target.value.id in tilelang_aliases
-                ):
+                if isinstance(target.value, ast.Name) and (target.value.id in tilelang_aliases):
                     return dec
             elif isinstance(target, ast.Name) and target.id in jit_names:
                 return dec
@@ -569,11 +525,7 @@ def _jit_decorators(tree: ast.AST):
 def _uses_namespace(body_nodes, aliases: set[str]) -> bool:
     for node in body_nodes:
         for sub in ast.walk(node):
-            if (
-                isinstance(sub, ast.Attribute)
-                and isinstance(sub.value, ast.Name)
-                and sub.value.id in aliases
-            ):
+            if isinstance(sub, ast.Attribute) and isinstance(sub.value, ast.Name) and sub.value.id in aliases:
                 return True
             if isinstance(sub, ast.Name) and sub.id in aliases:
                 return True
@@ -586,11 +538,7 @@ def _is_stub(func: ast.FunctionDef) -> bool:
         for stmt in func.body
         if not (
             isinstance(stmt, ast.Pass)
-            or (
-                isinstance(stmt, ast.Expr)
-                and isinstance(stmt.value, ast.Constant)
-                and isinstance(stmt.value.value, (str, type(Ellipsis)))
-            )
+            or (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, (str, type(Ellipsis))))
         )
     ]
     return not meaningful
@@ -601,16 +549,12 @@ def kernel_lint(py_path: str, op_name: str, rule_prefix: str = "S3"):
     failures, warnings = [], []
     src = _read_text(py_path)
     if src is None or not src.strip():
-        failures.append(
-            _fail(f"{rule_prefix}-EXISTS", py_path, "kernel 文件不存在或为空")
-        )
+        failures.append(_fail(f"{rule_prefix}-EXISTS", py_path, "kernel 文件不存在或为空"))
         return failures, warnings
     try:
         tree = ast.parse(src)
     except SyntaxError as exc:
-        failures.append(
-            _fail(f"{rule_prefix}-PARSE", py_path, f"Python 语法错误：{exc}")
-        )
+        failures.append(_fail(f"{rule_prefix}-PARSE", py_path, f"Python 语法错误：{exc}"))
         return failures, warnings
 
     for pat in PLACEHOLDER_PATTERNS:
@@ -644,11 +588,7 @@ def kernel_lint(py_path: str, op_name: str, rule_prefix: str = "S3"):
                 )
             )
     if not jit_found:
-        failures.append(
-            _fail(
-                f"{rule_prefix}-JIT", py_path, "未找到 @tilelang.jit 装饰的 kernel 函数"
-            )
-        )
+        failures.append(_fail(f"{rule_prefix}-JIT", py_path, "未找到 @tilelang.jit 装饰的 kernel 函数"))
 
     # --- golden function using torch ---
     torch_aliases = _collect_torch_aliases(tree)
@@ -697,17 +637,9 @@ def kernel_lint(py_path: str, op_name: str, rule_prefix: str = "S3"):
         ("run_L2", "run_L2"),
     ):
         if required not in top_names:
-            failures.append(
-                _fail(
-                    f"{rule_prefix}-TEST-LEVELS", py_path, f"缺少分层测试入口 {label}()"
-                )
-            )
+            failures.append(_fail(f"{rule_prefix}-TEST-LEVELS", py_path, f"缺少分层测试入口 {label}()"))
     if not any("boundary" in name.lower() for name in top_names):
-        failures.append(
-            _fail(
-                f"{rule_prefix}-TEST-LEVELS", py_path, "缺少边界测试入口 run_boundary()"
-            )
-        )
+        failures.append(_fail(f"{rule_prefix}-TEST-LEVELS", py_path, "缺少边界测试入口 run_boundary()"))
     for f in funcs:
         if (f.name.startswith("run_") or f.name.startswith("golden")) and _is_stub(f):
             failures.append(
@@ -719,10 +651,7 @@ def kernel_lint(py_path: str, op_name: str, rule_prefix: str = "S3"):
             )
 
     # --- main with --level ---
-    has_level = any(
-        isinstance(node, ast.Constant) and node.value == "--level"
-        for node in ast.walk(tree)
-    )
+    has_level = any(isinstance(node, ast.Constant) and node.value == "--level" for node in ast.walk(tree))
     if not has_level:
         failures.append(
             _fail(
@@ -734,8 +663,7 @@ def kernel_lint(py_path: str, op_name: str, rule_prefix: str = "S3"):
 
     # --- T.prim_func usage ---
     has_prim = any(
-        (isinstance(node, ast.Attribute) and node.attr == "prim_func")
-        or (isinstance(node, ast.Name) and node.id == "prim_func")
+        (isinstance(node, ast.Attribute) and node.attr == "prim_func") or (isinstance(node, ast.Name) and node.id == "prim_func")
         for node in ast.walk(tree)
     )
     if not has_prim:
@@ -808,20 +736,14 @@ def _perf_records_workload_lint(
             f"无法读取 workload inventory：{exc}",
         )
         return failures, warnings
-    if not isinstance(inventory, dict) or not isinstance(
-        inventory.get("workloads"), list
-    ):
-        fail(
-            "S4-WORKLOAD-INVENTORY", inventory_path, "inventory 必须包含 workloads 数组"
-        )
+    if not isinstance(inventory, dict) or not isinstance(inventory.get("workloads"), list):
+        fail("S4-WORKLOAD-INVENTORY", inventory_path, "inventory 必须包含 workloads 数组")
         return failures, warnings
 
     expected = {}
     for index, item in enumerate(inventory["workloads"], 1):
         if not isinstance(item, dict):
-            fail(
-                "S4-WORKLOAD-INVENTORY", inventory_path, f"workloads[{index}] 不是对象"
-            )
+            fail("S4-WORKLOAD-INVENTORY", inventory_path, f"workloads[{index}] 不是对象")
             continue
         required = (
             "benchmark_source",
@@ -844,10 +766,7 @@ def _perf_records_workload_lint(
             )
             continue
         key = (item["kernel_id"], item["workload_id"])
-        if (
-            any(not isinstance(value, str) or not value for value in key)
-            or key in expected
-        ):
+        if any(not isinstance(value, str) or not value for value in key) or key in expected:
             fail(
                 "S4-WORKLOAD-INVENTORY",
                 inventory_path,
@@ -874,14 +793,9 @@ def _perf_records_workload_lint(
             continue
         marks = {mark.lower() for mark in item["marks"]}
         has_smoke_token = any(
-            re.search(r"(?:^|[^A-Za-z0-9])smoke(?:$|[^A-Za-z0-9])", value, re.I)
-            for value in (item["workload_id"], item["label"])
+            re.search(r"(?:^|[^A-Za-z0-9])smoke(?:$|[^A-Za-z0-9])", value, re.I) for value in (item["workload_id"], item["label"])
         )
-        expected_kind = (
-            "skipped"
-            if "skip" in marks
-            else ("smoke" if "smoke" in marks or has_smoke_token else "tune")
-        )
+        expected_kind = "skipped" if "skip" in marks else ("smoke" if "smoke" in marks or has_smoke_token else "tune")
         if item["kind"] != expected_kind:
             fail(
                 "S4-WORKLOAD-INVENTORY",
@@ -898,10 +812,7 @@ def _perf_records_workload_lint(
                 inventory_path,
                 f"{key} 缺已完成的 tuning_status",
             )
-        if (
-            item.get("tuning_status") in ("no_gain", "merge_blocked")
-            and not item["reason"]
-        ):
+        if item.get("tuning_status") in ("no_gain", "merge_blocked") and not item["reason"]:
             fail(
                 "S4-WORKLOAD-INVENTORY",
                 inventory_path,
@@ -953,9 +864,7 @@ def _perf_records_workload_lint(
                 f"第 {line_no} 行缺少 {', '.join(missing)}",
             )
             continue
-        if not isinstance(rec["kernel_id"], str) or not isinstance(
-            rec["workload_id"], str
-        ):
+        if not isinstance(rec["kernel_id"], str) or not isinstance(rec["workload_id"], str):
             fail(
                 "S4-PERF-RECORDS-SCHEMA",
                 records_path,
@@ -998,12 +907,8 @@ def _perf_records_workload_lint(
             if final_artifact_path:
                 recorded_path = rec["artifact_path"]
                 if not os.path.isabs(recorded_path):
-                    recorded_path = os.path.join(
-                        os.path.dirname(records_path), recorded_path
-                    )
-                if os.path.normcase(os.path.abspath(recorded_path)) != os.path.normcase(
-                    os.path.abspath(final_artifact_path)
-                ):
+                    recorded_path = os.path.join(os.path.dirname(records_path), recorded_path)
+                if os.path.normcase(os.path.abspath(recorded_path)) != os.path.normcase(os.path.abspath(final_artifact_path)):
                     fail(
                         "S4-PERF-RECORDS-RECON",
                         records_path,
@@ -1066,11 +971,7 @@ def _perf_records_workload_lint(
                 if not line.strip().startswith("|"):
                     continue
                 cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-                if (
-                    len(cells) != 5
-                    or cells[0] in ("kernel_id", "---")
-                    or all(set(cell) <= set("-: ") for cell in cells)
-                ):
+                if len(cells) != 5 or cells[0] in ("kernel_id", "---") or all(set(cell) <= set("-: ") for cell in cells):
                     continue
                 try:
                     claim_key = (cells[0], cells[1])
@@ -1097,11 +998,7 @@ def _perf_records_workload_lint(
                     continue
                 for phase, value in (("baseline", claim[0]), ("final", claim[1])):
                     records = phases.get(phase, [])
-                    if records and not any(
-                        abs(rec["duration_us"] - value)
-                        <= max(RECON_TOLERANCE * value, 1e-9)
-                        for rec in records
-                    ):
+                    if records and not any(abs(rec["duration_us"] - value) <= max(RECON_TOLERANCE * value, 1e-9) for rec in records):
                         fail(
                             "S4-PERF-RECORDS-RECON",
                             opt_log_path,
@@ -1245,9 +1142,7 @@ def perf_records_lint(
     final_artifact_path: str,
 ):
     """Check inventory coverage, measured workloads, and the final kernel."""
-    inventory_path = os.path.join(
-        os.path.dirname(records_path), "workload_inventory.json"
-    )
+    inventory_path = os.path.join(os.path.dirname(records_path), "workload_inventory.json")
     if not os.path.isfile(inventory_path):
         return [
             _fail(
@@ -1256,9 +1151,7 @@ def perf_records_lint(
                 "Stage 4 缺少 workload_inventory.json",
             )
         ], []
-    return _perf_records_workload_lint(
-        records_path, opt_log_path, inventory_path, final_artifact_path
-    )
+    return _perf_records_workload_lint(records_path, opt_log_path, inventory_path, final_artifact_path)
 
 
 def perf_lint(
@@ -1275,9 +1168,7 @@ def perf_lint(
     warnings += w
     log = _read_text(opt_log_path)
     if log is None or not log.strip():
-        failures.append(
-            _fail("S4-OPTLOG", opt_log_path, "perf_opt/opt_log.md 不存在或为空")
-        )
+        failures.append(_fail("S4-OPTLOG", opt_log_path, "perf_opt/opt_log.md 不存在或为空"))
     elif "Skill Retrospective" not in log:
         warnings.append(
             _warn(
@@ -1311,11 +1202,7 @@ def migration_source_lint(meta: dict, meta_path: str, repo_root: str):
     def fail(message):
         failures.append(_fail("S0-SOURCE", meta_path, message))
 
-    if (
-        not isinstance(gpu_root, str)
-        or not os.path.isabs(gpu_root)
-        or not os.path.isdir(gpu_root)
-    ):
+    if not isinstance(gpu_root, str) or not os.path.isabs(gpu_root) or not os.path.isdir(gpu_root):
         fail("gpu_repo_root 必须为存在的绝对目录")
         return failures
     if meta.get("source_layout") != "src":
@@ -1348,11 +1235,7 @@ def migration_source_lint(meta: dict, meta_path: str, repo_root: str):
         fail("gpu_source.kernel_bindings 必须是非空列表")
     else:
         for binding in bindings:
-            if (
-                not isinstance(binding, dict)
-                or not isinstance(binding.get("class"), str)
-                or not binding["class"].isidentifier()
-            ):
+            if not isinstance(binding, dict) or not isinstance(binding.get("class"), str) or not binding["class"].isidentifier():
                 fail("kernel_bindings 项必须含合法 class")
                 continue
             file_at(gpu_root, binding.get("path"), "kernel_bindings.path")
@@ -1399,41 +1282,25 @@ def meta_lint(meta_path: str, repo_root: str):
     failures, warnings = [], []
     raw = _read_text(meta_path)
     if raw is None or not raw.strip():
-        failures.append(
-            _fail("S0-META", meta_path, ".migration_meta.json 不存在或为空")
-        )
+        failures.append(_fail("S0-META", meta_path, ".migration_meta.json 不存在或为空"))
         return failures, warnings
     try:
         meta = json.loads(raw)
     except json.JSONDecodeError as exc:
-        failures.append(
-            _fail("S0-META", meta_path, f".migration_meta.json 非法 JSON：{exc}")
-        )
+        failures.append(_fail("S0-META", meta_path, f".migration_meta.json 非法 JSON：{exc}"))
         return failures, warnings
 
     if not isinstance(meta, dict):
         return [_fail("S0-META", meta_path, "meta 顶层必须是对象")], warnings
     for field in ("op_slug", "family", "extracted_functions"):
         if field not in meta or not meta[field]:
-            failures.append(
-                _fail(
-                    "S0-META-FIELD", meta_path, f".migration_meta.json 缺字段 {field}"
-                )
-            )
+            failures.append(_fail("S0-META-FIELD", meta_path, f".migration_meta.json 缺字段 {field}"))
     funcs = meta.get("extracted_functions") or []
-    if (
-        not isinstance(funcs, list)
-        or not funcs
-        or any(not isinstance(f, str) or not f.isidentifier() for f in funcs)
-    ):
-        failures.append(
-            _fail("S0-META-FUNC", meta_path, "extracted_functions 必须为非空函数名列表")
-        )
+    if not isinstance(funcs, list) or not funcs or any(not isinstance(f, str) or not f.isidentifier() for f in funcs):
+        failures.append(_fail("S0-META-FUNC", meta_path, "extracted_functions 必须为非空函数名列表"))
         return failures, warnings
     if len(set(funcs)) != len(funcs):
-        failures.append(
-            _fail("S0-META-FUNC", meta_path, "extracted_functions 不得重复")
-        )
+        failures.append(_fail("S0-META-FUNC", meta_path, "extracted_functions 不得重复"))
     failures += migration_source_lint(meta, meta_path, repo_root)
 
     family = meta.get("family")
@@ -1496,9 +1363,7 @@ def integration_lint(migration_state: dict, repo_root: str):
     op_slug = migration_state.get("op_slug")
     meta_path = migration_state.get("meta_path")
     if not (family and op_slug):
-        failures.append(
-            _fail("S5-STATE", str(meta_path), ".migration_state.json 缺 family/op_slug")
-        )
+        failures.append(_fail("S5-STATE", str(meta_path), ".migration_state.json 缺 family/op_slug"))
         return failures, warnings
     pkg_dir = os.path.join(
         repo_root,
@@ -1509,18 +1374,12 @@ def integration_lint(migration_state: dict, repo_root: str):
         return failures, warnings
     for required in ("__init__.py", "integration_log.md", "integration_report.json"):
         if not os.path.exists(os.path.join(pkg_dir, required)):
-            failures.append(
-                _fail(
-                    "S5-PKG", os.path.join(pkg_dir, required), f"集成包缺少 {required}"
-                )
-            )
+            failures.append(_fail("S5-PKG", os.path.join(pkg_dir, required), f"集成包缺少 {required}"))
     for func in migration_state.get("functions") or {}:
         for suffix in (".py", "_DESIGN.md"):
             path = os.path.join(pkg_dir, f"{func}{suffix}")
             if not os.path.exists(path):
-                failures.append(
-                    _fail("S5-FUNCS", path, f"集成包缺少函数 {func} 的 {suffix} 文件")
-                )
+                failures.append(_fail("S5-FUNCS", path, f"集成包缺少函数 {func} 的 {suffix} 文件"))
     wrapper = os.path.join(
         repo_root,
         f"examples/TileOPs/src/tileops/_kernels/{family}/{op_slug}/{op_slug}.py",
@@ -1596,9 +1455,7 @@ def integration_lint(migration_state: dict, repo_root: str):
     try:
         report_ref = json.loads(report_ref_text)
     except json.JSONDecodeError as exc:
-        failures.append(
-            _fail("S5-REPORT-REF", report_ref_path, f"报告引用不是合法 JSON：{exc}")
-        )
+        failures.append(_fail("S5-REPORT-REF", report_ref_path, f"报告引用不是合法 JSON：{exc}"))
         return failures, warnings
     run_rel = report_ref.get("run_json") if isinstance(report_ref, dict) else None
     if not isinstance(run_rel, str) or not run_rel.endswith("/run.json"):
@@ -1610,19 +1467,10 @@ def integration_lint(migration_state: dict, repo_root: str):
             )
         )
         return failures, warnings
-    report_root = os.path.realpath(
-        os.path.join(repo_root, "examples", "TileOPs", "reports", "tileops")
-    )
+    report_root = os.path.realpath(os.path.join(repo_root, "examples", "TileOPs", "reports", "tileops"))
     run_path = os.path.realpath(os.path.join(repo_root, run_rel))
-    if (
-        not run_rel.startswith("examples/TileOPs/reports/tileops/")
-        or os.path.commonpath((report_root, run_path)) != report_root
-    ):
-        failures.append(
-            _fail(
-                "S5-REPORT-REF", report_ref_path, "run_json 路径不在 TileOPs 报告目录内"
-            )
-        )
+    if not run_rel.startswith("examples/TileOPs/reports/tileops/") or os.path.commonpath((report_root, run_path)) != report_root:
+        failures.append(_fail("S5-REPORT-REF", report_ref_path, "run_json 路径不在 TileOPs 报告目录内"))
         return failures, warnings
     run_text = _read_text(run_path)
     if run_text is None:
@@ -1631,48 +1479,31 @@ def integration_lint(migration_state: dict, repo_root: str):
     try:
         run = json.loads(run_text)
     except json.JSONDecodeError as exc:
-        failures.append(
-            _fail("S5-REPORT", run_path, f"报告 run.json 不是合法 JSON：{exc}")
-        )
+        failures.append(_fail("S5-REPORT", run_path, f"报告 run.json 不是合法 JSON：{exc}"))
         return failures, warnings
     if not isinstance(run, dict):
         failures.append(_fail("S5-REPORT", run_path, "报告 run.json 顶层必须为对象"))
         return failures, warnings
 
-    meta_file = (
-        meta_path
-        if os.path.isabs(str(meta_path))
-        else os.path.join(repo_root, str(meta_path))
-    )
+    meta_file = meta_path if os.path.isabs(str(meta_path)) else os.path.join(repo_root, str(meta_path))
     try:
         meta = json.loads(_read_text(meta_file) or "")
     except (json.JSONDecodeError, TypeError):
         meta = None
     if not isinstance(meta, dict) or not meta.get("op_name"):
-        failures.append(
-            _fail("S5-REPORT-META", meta_file, "迁移元数据缺少 manifest 算子名 op_name")
-        )
+        failures.append(_fail("S5-REPORT-META", meta_file, "迁移元数据缺少 manifest 算子名 op_name"))
         return failures, warnings
     failures += migration_source_lint(meta, meta_file, repo_root)
     if run.get("operator") != meta["op_name"]:
-        failures.append(
-            _fail("S5-REPORT-OP", run_path, "报告算子与迁移元数据 op_name 不一致")
-        )
+        failures.append(_fail("S5-REPORT-OP", run_path, "报告算子与迁移元数据 op_name 不一致"))
     metadata = run.get("metadata")
     summary = run.get("summary")
     if not isinstance(metadata, dict) or not isinstance(summary, dict):
         failures.append(_fail("S5-REPORT", run_path, "报告缺少 metadata/summary 对象"))
         return failures, warnings
-    expected_test = (
-        meta.get("test_path") or f"tests/ops/test_{meta.get('test_slug')}.py"
-    )
-    expected_bench = (
-        meta.get("bench_path") or f"benchmarks/ops/bench_{meta.get('bench_slug')}.py"
-    )
-    if (
-        metadata.get("test_file") != expected_test
-        or metadata.get("benchmark_file") != expected_bench
-    ):
+    expected_test = meta.get("test_path") or f"tests/ops/test_{meta.get('test_slug')}.py"
+    expected_bench = meta.get("bench_path") or f"benchmarks/ops/bench_{meta.get('bench_slug')}.py"
+    if metadata.get("test_file") != expected_test or metadata.get("benchmark_file") != expected_bench:
         failures.append(
             _fail(
                 "S5-REPORT-TARGET",
@@ -1693,21 +1524,12 @@ def integration_lint(migration_state: dict, repo_root: str):
     benchmark_passed = summary.get("benchmark_passed") is True
     status = run.get("status")
     correctness_tests = summary.get("correctness_tests")
-    if (
-        not correctness_passed
-        or not isinstance(correctness_tests, int)
-        or isinstance(correctness_tests, bool)
-        or correctness_tests < 1
-    ):
-        failures.append(
-            _fail("S5-REPORT-TEST", run_path, "报告缺少通过的全量正确性用例")
-        )
+    if not correctness_passed or not isinstance(correctness_tests, int) or isinstance(correctness_tests, bool) or correctness_tests < 1:
+        failures.append(_fail("S5-REPORT-TEST", run_path, "报告缺少通过的全量正确性用例"))
     if not benchmark_requested:
         failures.append(_fail("S5-REPORT-BENCH", run_path, "报告未实际运行 benchmark"))
     if status not in ("passed", "partial") or (status == "passed") != benchmark_passed:
-        failures.append(
-            _fail("S5-REPORT-STATUS", run_path, "报告状态与 benchmark 结论不一致")
-        )
+        failures.append(_fail("S5-REPORT-STATUS", run_path, "报告状态与 benchmark 结论不一致"))
     if status == "partial" and correctness_passed and benchmark_requested:
         warnings.append(
             _warn(
@@ -1721,13 +1543,8 @@ def integration_lint(migration_state: dict, repo_root: str):
         if not os.path.isfile(path):
             failures.append(_fail("S5-REPORT-FILE", path, f"缺少 {name}"))
     sources = [wrapper, os.path.join(pkg_dir, "__init__.py")]
-    sources.extend(
-        os.path.join(pkg_dir, f"{func}.py")
-        for func in migration_state.get("functions") or {}
-    )
-    if all(os.path.isfile(path) for path in sources) and os.path.getmtime(
-        run_path
-    ) < max(os.path.getmtime(path) for path in sources):
+    sources.extend(os.path.join(pkg_dir, f"{func}.py") for func in migration_state.get("functions") or {})
+    if all(os.path.isfile(path) for path in sources) and os.path.getmtime(run_path) < max(os.path.getmtime(path) for path in sources):
         failures.append(
             _fail(
                 "S5-REPORT-STALE",
@@ -1795,9 +1612,7 @@ def state_schema_lint(state: dict, state_path: str):
     failures, warnings = [], []
     for field, expected in SCHEMA.items():
         if field not in state:
-            failures.append(
-                _fail("SCHEMA-MISSING", state_path, f"状态文件缺字段 {field}")
-            )
+            failures.append(_fail("SCHEMA-MISSING", state_path, f"状态文件缺字段 {field}"))
         elif not isinstance(state[field], expected):
             failures.append(
                 _fail(
@@ -1807,23 +1622,15 @@ def state_schema_lint(state: dict, state_path: str):
                 )
             )
     if state.get("scenario") not in SCENARIOS:
-        failures.append(
-            _fail("SCHEMA-ENUM", state_path, f"scenario 非法：{state.get('scenario')}")
-        )
+        failures.append(_fail("SCHEMA-ENUM", state_path, f"scenario 非法：{state.get('scenario')}"))
     if state.get("phase") not in PHASES:
-        failures.append(
-            _fail("SCHEMA-ENUM", state_path, f"phase 非法：{state.get('phase')}")
-        )
+        failures.append(_fail("SCHEMA-ENUM", state_path, f"phase 非法：{state.get('phase')}"))
     mode = state.get("migration_mode")
     if mode is not None and mode not in MIGRATION_MODES:
-        failures.append(
-            _fail("SCHEMA-ENUM", state_path, f"migration_mode 非法：{mode}")
-        )
+        failures.append(_fail("SCHEMA-ENUM", state_path, f"migration_mode 非法：{mode}"))
     reason = state.get("failure_reason")
     if reason is not None and reason not in BLOCKED_CODES:
-        failures.append(
-            _fail("SCHEMA-ENUM", state_path, f"failure_reason 非法：{reason}")
-        )
+        failures.append(_fail("SCHEMA-ENUM", state_path, f"failure_reason 非法：{reason}"))
     for key, val in (state.get("stage_status") or {}).items():
         if val is not None and val not in STAGE_STATUS_VALUES:
             failures.append(
@@ -1958,9 +1765,7 @@ FORBIDDEN_WORD_RES = [
     ),
     # Legacy programming-mode enums (subagent name tilelang-op-developer is fine).
     (
-        re.compile(
-            r"Developer/Expert|Developer\s*模式|[Ee]xpert\s*模式|developer\|expert|Developer\|Expert"
-        ),
+        re.compile(r"Developer/Expert|Developer\s*模式|[Ee]xpert\s*模式|developer\|expert|Developer\|Expert"),
         "Developer/Expert mode",
     ),
 ]
@@ -2037,12 +1842,30 @@ def _main(argv=None):
     )
     parser.add_argument(
         "--repo-root",
-        default=os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        ),
+        default=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         help="仓库根目录（默认：脚本位置上两级）",
     )
+    parser.add_argument("--stage", type=int, choices=[1, 2, 3])
+    parser.add_argument("--artifact", help="artifact to check, without reading conductor state")
+    parser.add_argument("--op")
+    parser.add_argument("--migration", action="store_true")
     args = parser.parse_args(argv)
+    if args.stage is not None:
+        if not args.artifact or (args.stage == 3 and not args.op):
+            parser.error("--artifact is required; stage 3 also requires --op")
+        if args.stage == 1:
+            failures, warnings = design_lint(args.artifact, args.migration, args.repo_root)
+        elif args.stage == 2:
+            failures, warnings = review_lint(args.artifact, args.migration)
+        else:
+            failures, warnings = kernel_lint(args.artifact, args.op)
+        print(
+            json.dumps(
+                {"ok": not failures, "failures": failures, "warnings": warnings},
+                ensure_ascii=False,
+            )
+        )
+        return 0 if not failures else 1
     if not args.forbidden_words:
         parser.print_help()
         return 2

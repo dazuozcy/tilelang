@@ -686,7 +686,8 @@ class Extractor:
     TileLang kernel function(s), the module-level constants they reference,
     and the external imports (tilelang / torch / stdlib) they need. The
     ``Kernel`` subclass, wrapper functions, ``register_fake`` hooks and
-    other helpers are intentionally *not* emitted.
+    unrelated helpers are intentionally *not* emitted. Transitive helpers
+    referenced by the emitted functions are included.
     """
 
     def __init__(self, repo_root: Path) -> None:
@@ -746,6 +747,38 @@ class Extractor:
         for t in targets:
             ref_node = t.merged_ast if t.merged_ast is not None else t.node
             needed_refs |= _collect_refs(ref_node)
+        helper_targets = []
+        target_keys = {(t.file.resolve(), t.node.name) for t in targets}
+        visited = set(target_keys)
+
+        def collect_helpers(file, node):
+            for ref in sorted(_collect_refs(node)):
+                location = _resolve_name_location(self.loader, file, ref)
+                if location is None:
+                    continue
+                dep_file, dep = location
+                key = (dep_file.resolve(), getattr(dep, "name", ref))
+                if key in visited:
+                    continue
+                visited.add(key)
+                if isinstance(dep, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    if ref != dep.name:
+                        raise ValueError(
+                            f"helper alias {ref!r} -> {dep.name!r} requires explicit renaming"
+                        )
+                    collect_helpers(dep_file, dep)
+                    helper_targets.append(EmitTarget(dep_file, dep, "helper"))
+                    needed_refs.update(_collect_refs(dep))
+
+        for t in targets:
+            collect_helpers(t.file, t.merged_ast if t.merged_ast is not None else t.node)
+        all_targets = helper_targets + targets
+        owner_by_name = {}
+        for t in all_targets:
+            emitted_name = t.merged_ast.name if t.merged_ast is not None else t.node.name
+            if emitted_name in owner_by_name and owner_by_name[emitted_name] != t.file:
+                raise ValueError(f"conflicting extracted name {emitted_name!r}; rename explicitly")
+            owner_by_name[emitted_name] = t.file
         const_keys = self._collect_constants(needed_refs)
 
         # Emitted names: use the merged function name when merged, else the
@@ -759,7 +792,7 @@ class Extractor:
         emitted_names |= {k[1] for k in const_keys}
         import_texts, _ = self._collect_imports(needed_refs | emitted_names)
 
-        return self._assemble(targets, const_keys, import_texts)
+        return self._assemble(all_targets, const_keys, import_texts)
 
     # -- target resolution ------------------------------------------------ #
 
@@ -978,6 +1011,8 @@ class Extractor:
         if target.merged_ast is not None:
             return ast.unparse(target.merged_ast)
         st = self.loader.load(target.file)
+        if target.kind == "helper":
+            return ast.unparse(target.node)
         if target.kind == "op_func":
             # Extract the method's full source lines manually. Unlike
             # ast.get_source_segment (which starts the first line at
@@ -1019,6 +1054,11 @@ class Extractor:
                 st = self.loader._cache[key[0]]
                 parts.append(ast.get_source_segment(st.source, self.discovered[key]))
             parts.append("")
+        helper_targets = [t for t in targets if t.kind == "helper"]
+        if helper_targets:
+            parts.append("# --- transitive helpers used by emitted kernels ---")
+            parts.extend(self._emit_node(t) for t in helper_targets)
+            parts.append("")
         if tl_targets:
             parts.append("# --- TileLang kernel functions (@tilelang.jit) ---")
             for t in tl_targets:
@@ -1059,6 +1099,34 @@ class Extractor:
 # --------------------------------------------------------------------------- #
 
 
+def stage0_identity(op_name: str, family: str) -> dict[str, Any]:
+    """One naming contract for conductor, scaffold paths and metadata.
+
+    Strip the public Op/Fwd suffix, retain acronym runs (MLP, FP8), and use
+    per-op target files even when source tests group several operators.
+    """
+    name = re.sub(r"(?:Fwd)?Op$", "", op_name)
+    name = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
+    slug = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name).lower()
+    if not re.fullmatch(r"[a-z][a-z0-9_]*", slug) or not re.fullmatch(r"[a-z][a-z0-9_]*", family):
+        raise ValueError("op name/family cannot form safe Stage 0 paths")
+    wrapper_dir = f"src/tileops/_kernels/{family}/{slug}"
+    return {
+        "op_name": op_name,
+        "op_slug": slug,
+        "family": family,
+        "task_dir": f"examples/{slug}",
+        "wrapper_dir": wrapper_dir,
+        "wrapper_path": f"{wrapper_dir}/{slug}.py",
+        "meta_path": f"{wrapper_dir}/.migration_meta.json",
+        "test_path": f"tests/ops/test_{slug}.py",
+        "bench_path": f"benchmarks/ops/bench_{slug}.py",
+        "conversion_path": f"{wrapper_dir}/conversion_record.md",
+        "prompt_path": f"{wrapper_dir}/migration_prompts.md",
+        "static_report_path": f"{wrapper_dir}/stage0_static_checks.json",
+    }
+
+
 def _slug(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_]+", "_", name)
 
@@ -1090,28 +1158,68 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Write discovered GPU provenance for Stage 0 (tests/workloads/conversion still require review)",
     )
+    parser.add_argument(
+        "--inspect-out",
+        type=Path,
+        help="With --inspect, save the complete JSON for conductor handoff",
+    )
+    parser.add_argument(
+        "--stage0-plan",
+        action="store_true",
+        help="Extract and write path plan + metadata draft under the A5 root (cwd); no device imports",
+    )
     args = parser.parse_args(argv)
+    if args.inspect_out and not args.inspect:
+        parser.error("--inspect-out requires --inspect")
+    if args.stage0_plan and (args.inspect or args.out or args.source_info_out):
+        parser.error(
+            "--stage0-plan owns output paths; do not combine with --inspect/--out/--source-info-out"
+        )
 
     repo_root = args.gpu_repo_root.resolve()
     if not repo_root.exists():
         parser.error(f"--gpu-repo-root does not exist: {repo_root}")
 
     entry = load_manifest_entry(args.op_name, repo_root)
+    identity = stage0_identity(args.op_name, entry["family"])
+    bindings = resolve_kernel_bindings(entry, args.op_name, repo_root)
     if args.inspect:
-        print(
+        payload = (
             json.dumps(
                 {
-                    "op_name": args.op_name,
+                    **identity,
+                    "gpu_repo_root": str(repo_root),
                     "entry": entry,
                     "kernel_bindings": [
-                        {"path": str(p.relative_to(repo_root)), "class": n}
-                        for p, n in resolve_kernel_bindings(entry, args.op_name, repo_root)
+                        {"path": p.relative_to(repo_root).as_posix(), "class": n}
+                        for p, n in bindings
                     ],
                 },
                 ensure_ascii=False,
+                indent=2,
             )
+            + "\n"
         )
+        if args.inspect_out:
+            args.inspect_out.parent.mkdir(parents=True, exist_ok=True)
+            args.inspect_out.write_text(payload, encoding="utf-8")
+        if args.inspect_out:
+            print(
+                json.dumps(
+                    {
+                        **identity,
+                        "inspect_path": str(args.inspect_out.resolve()),
+                        "kernel_count": len(bindings),
+                    },
+                    ensure_ascii=False,
+                )
+            )
+        else:
+            print(payload, end="")
         return 0
+    if args.stage0_plan:
+        args.out = Path(identity["wrapper_dir"])
+        args.source_info_out = args.out / "stage0_discovery.json"
     source = entry["source"]
     kernel_rel = source.get("kernel")
     if not kernel_rel:
@@ -1165,7 +1273,10 @@ def main(argv: list[str] | None = None) -> int:
                     for p, n in resolve_kernel_bindings(entry, args.op_name, repo_root)
                 ],
                 "function_sources": {
-                    t.node.name: t.file.relative_to(repo_root).as_posix() for t in extractor.targets
+                    (
+                        t.merged_ast.name if t.merged_ast is not None else t.node.name
+                    ): t.file.relative_to(repo_root).as_posix()
+                    for t in extractor.targets
                 },
                 "revision": revision.stdout.strip() if revision.returncode == 0 else "unversioned",
                 "dirty": bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
@@ -1175,6 +1286,48 @@ def main(argv: list[str] | None = None) -> int:
         args.source_info_out.write_text(
             json.dumps(provenance, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
+
+    if args.stage0_plan:
+        extracted_functions = [
+            t.merged_ast.name if t.merged_ast is not None else t.node.name
+            for t in extractor.targets
+        ]
+        classes = [n for _, n in bindings]
+        draft = {
+            **provenance,
+            "op_name": args.op_name,
+            "op_slug": identity["op_slug"],
+            "family": identity["family"],
+            "op_class_name": args.op_name,
+            "kernel_class_name": classes[0],
+            "kernel_class_names": classes,
+            "wrapper_path": identity["wrapper_path"],
+            "extracted_file": out_path.as_posix(),
+            "extracted_functions": extracted_functions,
+            "test_path": identity["test_path"],
+            "test_slug": identity["op_slug"],
+            "bench_path": identity["bench_path"],
+            "bench_slug": identity["op_slug"],
+            "conversion_path": identity["conversion_path"],
+        }
+        for field in ("workload_paths", "test_paths", "bench_paths"):
+            draft["gpu_source"][field] = []
+        plan = {
+            **identity,
+            "extracted_file": out_path.as_posix(),
+            "extracted_functions": extracted_functions,
+            "metadata_draft": draft,
+            "requires_review": [
+                "source workload/test/bench dependencies and coverage",
+                "target class exports and converted call contracts",
+                "conversion record and created_at",
+            ],
+        }
+        plan_path = args.out / "stage0_plan.json"
+        plan_path.write_text(
+            json.dumps(plan, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(f"[ok] Stage 0 plan + metadata draft: {plan_path}")
 
     # Report which source files contributed to the extraction.
     contributing = extractor.contributing_files()

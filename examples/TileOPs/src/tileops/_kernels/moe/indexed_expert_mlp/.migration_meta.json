@@ -1,0 +1,76 @@
+{
+  "op_name": "IndexedExpertMLPFwdOp",
+  "op_slug": "indexed_expert_mlp",
+  "family": "moe",
+  "gpu_repo_root": "/home/zuo/code/TileOPs",
+  "kernel_class_name": "IndexedExpertGateUpKernel",
+  "kernel_class_names": [
+    "IndexedRouteStatsKernel",
+    "IndexedExpertGateUpKernel",
+    "IndexedExpertDownKernel",
+    "IndexedWeightedReduceKernel"
+  ],
+  "op_class_name": "IndexedExpertMLPFwdOp",
+  "test_path": "tests/ops/test_indexed_expert_mlp.py",
+  "test_slug": "indexed_expert_mlp",
+  "bench_path": "benchmarks/ops/bench_indexed_expert_mlp.py",
+  "bench_slug": "indexed_expert_mlp",
+  "wrapper_path": "src/tileops/_kernels/moe/indexed_expert_mlp/indexed_expert_mlp.py",
+  "extracted_file": "src/tileops/_kernels/moe/indexed_expert_mlp/_indexed_expert_m_l_p_fwd_kernels.py",
+  "extracted_functions": [
+    "_route_stats",
+    "_indexed_expert_gemm",
+    "_weighted_reduce"
+  ],
+  "created_at": "2026-10-28T15:27:16Z",
+  "source_layout": "src",
+  "gpu_source": {
+    "manifest_path": "src/tileops/manifest/spec/moe.yaml",
+    "op_path": "src/tileops/_ops/moe/routed_expert/indexed_routed_expert.py",
+    "kernel_bindings": [
+      {
+        "path": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+        "class": "IndexedRouteStatsKernel"
+      },
+      {
+        "path": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+        "class": "IndexedExpertGEMMTemplate"
+      },
+      {
+        "path": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+        "class": "IndexedExpertGateUpKernel"
+      },
+      {
+        "path": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+        "class": "IndexedExpertDownKernel"
+      },
+      {
+        "path": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+        "class": "IndexedWeightedReduceKernel"
+      }
+    ],
+    "function_sources": {
+      "_route_stats": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+      "_indexed_expert_gemm": "src/tileops/_kernels/moe/indexed_expert_gemm.py",
+      "_weighted_reduce": "src/tileops/_kernels/moe/indexed_expert_gemm.py"
+    },
+    "workload_paths": [
+      "workloads/moe.py",
+      "workloads/workload_base.py",
+      "workloads/device.py",
+      "workloads/numerics.py"
+    ],
+    "test_paths": [
+      "tests/ops/test_fused_moe_experts.py",
+      "tests/ops/test_moe_compile.py",
+      "tests/test_roofline_oracle.py"
+    ],
+    "bench_paths": [
+      "benchmarks/ops/bench_fused_moe_experts.py",
+      "benchmarks/_cases/moe.py"
+    ],
+    "revision": "3979278e2da6ac4fa84d8c7c800dec64ea9c0425",
+    "dirty": false
+  },
+  "conversion_path": "src/tileops/_kernels/moe/indexed_expert_mlp/conversion_record.md"
+}

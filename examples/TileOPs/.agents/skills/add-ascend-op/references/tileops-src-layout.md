@@ -26,7 +26,8 @@ python .agents/skills/add-ascend-op/scripts/extract_tl_kernel.py \
   --gpu-repo-root /home/zuo/code/TileOPs --op-name {op_name} --inspect
 ```
 
-`--inspect` emits JSON with the entry and resolved `kernel_bindings`, without
+`--inspect` emits JSON with authoritative `op_slug`/target paths, the entry and
+resolved `kernel_bindings`, without
 writing files or executing source code. Its synthesized `entry.source.op`
 and `entry.source.kernel` point to the Op discovery root, not a manifest
 field or a claim that all kernel classes live in that file. The bindings
@@ -104,7 +105,10 @@ contract's tensor traffic, documented and checked; never invent a number.
 The extraction script resolves `kernel_types` through base classes and imports,
 then gathers builders and dependencies across all bound kernel files. It uses
 `src/` for absolute `tileops.*` imports and preserves relative import resolution.
-Run its normal `--out` command after inspect. Inspect output warnings and AST:
+For automated Stage 0 use `--stage0-plan` after inspect; it owns output paths,
+extracts transitive helpers and writes the reviewed-field metadata draft. Do not
+then repeat the normal `--out` extraction. Standalone extraction may still use
+`--out --source-info-out`. Inspect output warnings and AST:
 there must be no unresolved internal package dependency or missing helper.
 Conflicting same-name definitions from different files need explicit renaming
 with all references updated; never accept an extraction with collisions.

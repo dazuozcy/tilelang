@@ -37,20 +37,20 @@ INIT --> DESIGN --> REVIEW --> DEVELOP --> TUNING(可选) --> DONE
 | 数学公式 / 计算语义 | 用户给出公式 / 标准 API 名（如"参考 PyTorch 的 F.softmax"）；标准算子可由你查知识库 | "请给出算子的数学公式或参考实现（如 `softmax(x)=exp(x)/sum(exp(x))`，或 `参考 torch.nn.functional.softmax`）" |
 | 输入张量规格 | **shape + dtype 都明确**（shape 可含动态维度 `B`、`N` 等符号，但需明确哪些动态）。该 shape 作为 L0 代表性规则 shape；更全面的不规则/异常/边界覆盖由 Stage 1 的 L0 计划与 Stage 3 的扩展自动产生 | "请告诉我输入张量的 shape 和 dtype（如 `[B, N] float16`，其中 B 是动态、N 是静态）" |
 | 输出张量规格 | shape + dtype 都明确；若与输入一致可允许"同输入"作为回答 | "请告诉我输出张量的 shape 和 dtype（与输入相同时回答`同输入`即可）" |
-| **编程模式偏好** ⭐ | 用户明确写 `simt` / `simd` / `mixed` 三者之一（写入 `op_requirements` 前归一化为小写枚举；正交字段 `auto_schedule: yes|no` 默认 `yes`，仅当用户显式要求手动同步时设 `no`——枚举唯一出处见 `_shared/standards/signal-registry.md` §3，语义见 `_shared/standards/backend-glossary.md` §2） | "请选择编程模式：默认 simt（SimtVF 线程域自动调度）；若为 GEMM 主导算子建议 mixed；已有热点证据才选 simd。**这条不能默认填，必须由你选择**" |
+| **编程模式偏好** ⭐ | 用户指定 `simt` / `simd` / `mixed` 三者之一，或按默认规则确定（写入 `op_requirements` 前归一化为小写枚举；正交字段 `auto_schedule: yes|no` 默认 `yes`，仅当用户显式要求手动同步时设 `no`——枚举唯一出处见 `_shared/standards/signal-registry.md` §3，语义见 `_shared/standards/backend-glossary.md` §2） | "请选择编程模式：默认 simt（SimtVF 线程域自动调度）；若为 GEMM 主导算子建议 mixed；已有热点证据才选 simd。未指定时使用上述默认规则，无需为此追问" |
 
 ### 预检执行规则
 
 1. **逐字段扫描** 按上表顺序扫描用户消息（含初始描述 + 后续回答），标记每个字段为 `provided` 或 `missing`。
-2. **每次只问一个 missing 字段**（不批量问），按表格顺序问，已 `provided` 的跳过。
-3. **编程模式必须显式问**——只要用户没说就必须问，不能跳过、不能用默认值。
+2. **一次询问所有无法推导的 missing 字段**，已提供或从标准语义可无歧义推导的字段不追问；推导值注明依据。
+3. **编程模式偏好**优先用户约束；未指定默认 simt，GEMM 主导由 designer 论证 mixed。标准算子的输出规格可按语义推导。
 4. **可选字段**（精度容忍度 atol/rtol、性能目标、动态轴范围等）有合理默认值，由 op-design skill 内部处理，不在本预检范围。
 
 ### 失败处理
 
 | 情况 | 处理 |
 |------|------|
-| 用户拒绝回答某字段 | 重新询问 1 次，仍拒绝则置 `phase=FAILED`、`failure_reason=BLOCKED_SPEC` 并报告"用户未提供 X 字段，无法启动开发"。**不允许用默认值绕过**（特别是编程模式） |
+| 用户拒绝回答某字段 | 重新询问 1 次，仍拒绝则置 `phase=FAILED`、`failure_reason=BLOCKED_SPEC` 并报告"用户未提供 X 字段，无法启动开发"。不得猜测真正影响语义且无法推导的输入；编程模式按默认规则处理 |
 | 用户回答模糊（如"差不多"、"随便"） | 用 AskUserQuestion 用 multipleChoice 列出具体选项让用户选 |
 | 用户中途要求改字段 | 接受，更新结构化对象，**重新触发**预检确认是否仍齐全 |
 
@@ -58,7 +58,7 @@ INIT --> DESIGN --> REVIEW --> DEVELOP --> TUNING(可选) --> DONE
 
 ## 4. 传给 designer 的字段格式
 
-5 个字段齐全后汇总成结构化对象，作为调度 `@tilelang-op-designer`（`mode=first_design`）的 prompt 输入；同时写入临时区便于失败重试时不重复问用户；designer 调用 `tilelang-op-design` skill 时带上这些字段，skill 看到字段齐全后跳过提问环节，直接走技术约束检测和 design 生成。
+5 个字段经提供或有依据推导齐全后汇总成结构化对象，作为调度 `@tilelang-op-designer`（`mode=first_design`）的 prompt 输入；同时写入临时区便于失败重试时不重复问用户；designer 调用 `tilelang-op-design` skill 时带上这些字段，skill 看到字段齐全后跳过提问环节，直接走技术约束检测和 design 生成。
 
 ```yaml
 op_requirements:
@@ -72,7 +72,7 @@ op_requirements:
   output_spec:
     shape: <如 [B, N] 或 same_as_input>
     dtype: <如 float16 或 same_as_input>
-  programming_mode: simt | simd | mixed   # 用户回答后归一化（signal-registry.md §3）：simt=SimtVF 线程域（默认推荐）/ simd=SimdVF 显式 2048-bit 向量（性能热点）/ mixed=MixedKernel Cube+Vector
+  programming_mode: simt | simd | mixed   # 用户指定或默认规则确定后归一化（signal-registry.md §3）：simt=SimtVF 线程域（默认推荐）/ simd=SimdVF 显式 2048-bit 向量（性能热点）/ mixed=MixedKernel Cube+Vector
   auto_schedule: yes | no                 # 正交字段，默认 yes；no 时 DESIGN.md 必须写明手动同步方案（set_flag/wait_flag 配对），reviewer 增设检视点
   # ⬇ 迁移任务必填（scenario=migration，字段语义见 conductor-scenarios/migration.md）
   source_context: <仅 harness：按 migration-source.md 组装的完整来源上下文>
@@ -86,19 +86,19 @@ op_requirements:
 
 > migration-harness 跳过 Stage 4（见 harness.md）；optimize 场景调优即任务本身，进入时已收集调优信息，不再询问。
 
-Stage 3 返回 `[PRECISION_PASS]` 且二次校验通过后，你**必须**先向用户说明当前状态（算子已精度通过，给出 kernel 路径），**主动询问**："是否需要进行性能调优？"
+启动预检时一并记录已有的调优意图、目标和预算。Stage 3 返回 `[PRECISION_PASS]` 且执行收据核验通过后，先报告 kernel 路径：用户已明确要求调优则复用授权并直接进入 Stage 4（缺目标类型默认 best_effort）；明确不需要则交付。仅意图未知时询问一次“是否需要进行性能调优？”，不重复索取已提供信息。
 
 | 用户回答 | 行为 |
 |---------|------------------|
 | 不需要 / 否 / no / 跳过 | 经 `statectl set --perf-tuning no` 写入 `perf_tuning_requested=no`、置 `phase=DONE`，输出最终报告，流程结束 |
-| 需要 / 是 / yes | 继续询问调优必要信息（下表），收集完成后经 `statectl set --perf-tuning yes` 写入 `perf_tuning_requested=yes` 并 `start_stage(4)` |
-| 未明确回答 | 重新询问一次；二次仍不明确视为"不需要"，置 `phase=DONE` |
+| 需要 / 是 / yes | 批量补齐无法默认的调优信息（下表），收集完成后经 `statectl set --perf-tuning yes` 写入 `perf_tuning_requested=yes` 并 `start_stage(4)` |
+| 未明确回答 | 保留问题等待回答；不以沉默当授权，用户仅需正确性时可交付已验证版本并注明未调优 |
 
 ### 调优必要信息收集
 
 | 字段 | 必填 | 默认值 | 说明 |
 |------|---------|--------|------|
-| 性能目标类型 | ✅ | — | `latency` / `throughput` / `baseline_compare`（与 PyTorch/同类对比）/ `best_effort` |
+| 性能目标类型 | ⭕ | best_effort | `latency` / `throughput` / `baseline_compare`（与 PyTorch/同类对比）/ `best_effort` |
 | 目标数值 | ⭕ (type=latency/throughput 时必填) | — | 如 `< 100us` 或 `> 10 GFLOPS` |
 | Baseline 路径 | ⭕ (type=baseline_compare 时必填) | — | 对比基线代码路径或 PyTorch API |
 | 测试 shape | ⭕ | DESIGN.md 已有 shape | 性能基准对应的输入规格 |

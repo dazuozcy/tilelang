@@ -281,3 +281,82 @@ def test_integrator_requires_refreshed_metadata(tmp_path, metadata):
     path.write_text(json.dumps(metadata))
     with pytest.raises(SystemExit, match="regenerat"):
         integrator.load_meta(path)
+
+
+@pytest.mark.parametrize(
+    "name,slug",
+    [
+        ("IndexedExpertMLPFwdOp", "indexed_expert_mlp"),
+        ("SharedExpertMLPFwdOp", "shared_expert_mlp"),
+        ("LogSumExpFwdOp", "log_sum_exp"),
+        ("CastFP8Op", "cast_fp8"),
+    ],
+)
+def test_stage0_identity_preserves_acronyms(name, slug):
+    plan = extract.stage0_identity(name, "moe")
+    assert plan["op_slug"] == slug
+    assert plan["task_dir"] == f"examples/{slug}"
+    assert plan["wrapper_path"] == f"src/tileops/_kernels/moe/{slug}/{slug}.py"
+
+
+def test_transitive_helpers_keep_decorators_constants_and_imports(tmp_path):
+    modern_repo(tmp_path)
+    write(
+        tmp_path,
+        "src/tileops/_kernels/helpers.py",
+        """
+import math
+import tilelang.language as T
+FACTOR = 16
+@T.macro
+def align(n):
+    return math.ceil(n / FACTOR) * FACTOR
+
+def metadata_size(n):
+    return align(n) + 1
+""",
+    )
+    write(
+        tmp_path,
+        "src/tileops/_kernels/first.py",
+        """
+import tilelang
+from .helpers import metadata_size
+@tilelang.jit
+def first_builder(n):
+    return metadata_size(n)
+class First:
+    def build(self):
+        return first_builder(1)
+""",
+    )
+    entry = extract.load_manifest_entry("ExampleOp", tmp_path)
+    bindings = extract.resolve_kernel_bindings(entry, "ExampleOp", tmp_path)
+    tool = extract.Extractor(tmp_path)
+    output = tool.extract(tmp_path / entry["source"]["kernel"], [], "ExampleOp", bindings=bindings)
+    tree = ast.parse(output)
+    funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    assert {"metadata_size", "align", "first_builder", "second_builder"} <= funcs.keys()
+    assert ast.unparse(funcs["align"].decorator_list[0]) == "T.macro"
+    assert any(isinstance(n, ast.Import) and n.names[0].name == "math" for n in tree.body)
+    assert "FACTOR = 16" in output
+    assert {t.node.name for t in tool.targets} == {"first_builder", "second_builder"}
+    assert not any(isinstance(n, ast.ClassDef) for n in tree.body)
+
+
+def test_stage0_plan_generates_draft_without_claiming_completion(tmp_path, monkeypatch, capsys):
+    import json
+
+    source = tmp_path / "gpu"
+    modern_repo(source)
+    target = tmp_path / "target"
+    target.mkdir()
+    monkeypatch.chdir(target)
+    assert extract.main(["--gpu-repo-root", str(source), "--op-name", "ExampleOp", "--stage0-plan"]) == 0
+    plan = json.loads((target / "src/tileops/_kernels/reduction/example/stage0_plan.json").read_text())
+    assert plan["op_slug"] == "example"
+    assert set(plan["extracted_functions"]) == {"first_builder", "second_builder"}
+    assert (target / plan["extracted_file"]).is_file()
+    assert plan["metadata_draft"]["gpu_source"]["test_paths"] == []
+    assert not (target / plan["meta_path"]).exists()
+    assert plan["requires_review"]

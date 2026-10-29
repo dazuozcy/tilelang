@@ -38,7 +38,7 @@
 | `perf_tuning_requested` | `yes` / `no` | `statectl set --perf-tuning yes\|no` |
 | `perf_feedback.action` | `archive` / `revise` / `none` | `statectl set --perf-feedback-action`（前置：`perf_opt/perf_feedback.md` 存在） |
 | `phase` | `SCAFFOLD / DESIGN / REVIEW / DEVELOP / TUNING / INTEGRATE / DONE / FAILED` | statectl 迁移 |
-| `budget` | `{max_wallclock_s, max_subagent_dispatches, max_stage4_experiments}`，每项为正数或 `null`（=不限；默认全 `null`，建议值见 [gate-and-retry.md](gate-and-retry.md) §2） | `statectl set --budget-json '{"max_subagent_dispatches": 40}'` |
+| `budget` | `{max_wallclock_s, max_subagent_dispatches, max_stage4_experiments}`，每项为正数或 `null`（=不限；历史 schema 可为全 `null`；新任务由 Primary 设置有效默认值，见 [gate-and-retry.md](gate-and-retry.md) §2） | `statectl set --budget-json '{"max_subagent_dispatches": 40}'` |
 
 ## 4. `perf_iteration` 字段（Stage 4 迭代计数）
 
@@ -64,5 +64,5 @@
 
 ## 6. 关键术语的执行定义
 
-- **二次校验精度**：conductor 在 Stage 3 返回 `[PRECISION_PASS]` 后**重新跑全量** `python {op}.py --level all` 确认结果真实性（不只复跑 L0）。
+- **全量结果核验**：Stage 3 返回 `[PRECISION_PASS]` 后按 [execution-efficiency.md](execution-efficiency.md) §3 核验执行收据及覆盖；缺失、失效或稳定性要求时重跑全量 `python {op}.py --level all`。
 - **四出口判定（Stage 3）**：`[PRECISION_PASS]` / `[PRECISION_FAIL]` / `[DESIGN_ERROR]`（三者均为带标记返回）/ `RUNTIME_FAIL`（无标记且 exit code ≠ 0）。路由表见 [stage3-routing.md](stage3-routing.md) §2。

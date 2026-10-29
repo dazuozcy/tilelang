@@ -4,13 +4,13 @@
 
 ## 1. 调度模型
 
-每次调用 `@tilelang-op-developer` = 1 次 attempt；Developer 不在单次调度内自循环。累计 attempt 上限 **5 次**（`stage_retry_count[3]`）：因运行失败超限 → `BLOCKED_IMPL`；因精度失败超限 → `BLOCKED_ACCURACY`。每次调度的 prompt 必须明确：`attempt_index`、`mode`、`last_failure_summary`（若有）、`design_revision_count`。
+每次调用 `@tilelang-op-developer` = 1 次 attempt；Developer 可按 execution-efficiency.md §2 在单次调度内做有限局部实现修复；内部尝试保留日志，不接管全局重试。累计 attempt 上限 **5 次**（`stage_retry_count[3]`）：因运行失败超限 → `BLOCKED_IMPL`；因精度失败超限 → `BLOCKED_ACCURACY`。每次调度的 prompt 必须明确：`attempt_index`、`mode`、`last_failure_summary`（若有）、`design_revision_count`。
 
 ## 2. 四出口路由表
 
 | Developer 返回 | mode（下次调度时） | 路由 |
 |---------------|------------------|------|
-| `[PRECISION_PASS]` | — | `complete_stage(3)` → **二次校验精度**（重新跑全量 `--level all` 确认真实性）→ 按 `scenario` 分支：`new_op`/`migration-plain` 询问用户是否需要性能调优；`migration-harness` 不询问，标记该函数 `done` 进入下一函数（全部完成则 `start_stage(5)`）。此时 Developer 已在 L0 通过后扩展并跑过 L1/L2/Boundary 全量；L2/Boundary 告警仅记录不阻塞 |
+| `[PRECISION_PASS]` | — | **核验全量执行收据**（execution-efficiency.md §3；失效或缺失才重跑全量）→ `complete_stage(3)`→ 按 `scenario` 分支：`new_op`/`migration-plain` 复用已有调优授权，未知时才询问；`migration-harness` 不询问，标记该函数 `done` 后按依赖 ready 集合推进（全部完成则 `start_stage(5)`）。此时 Developer 已在 L0 通过后扩展并跑过 L1/L2/Boundary 全量；L2/Boundary 告警仅记录不阻塞 |
 | `[PRECISION_FAIL]` | `precision_fix` | Stage 3 内重试（L0 或 L1 未达标）。把失败信息作为 `last_failure_summary` 传入。**强制要求 Developer 先备份当前 impl 到 `history_version/{op}_impl_s3_attempt{N}.py` 再做修改** |
 | `[DESIGN_ERROR]` | — | 触发设计修订循环（路径 B，计 `retry_count`） |
 | 无标记且 exit code ≠ 0 | `retry_impl` | Stage 3 内重试，将 stderr 摘要作为 `last_failure_summary` 传入 |

@@ -98,6 +98,51 @@ develop); Stage 5 integration is done by
 Each op's own GPU flow is its reference example — reduction-family flows
 (e.g. LogSumExp) are **not** universal templates.
 
+## Automated Stage 0 fast path
+
+When called by scaffolder, reuse `stage0_python`, `validation_mode` and the
+validated `inspect_path` supplied by conductor (harness.md §3.1). Do not repeat
+environment scans or inspect unchanged sources. Execute documented CLI calls;
+read tool implementation only after a concrete error or missing CLI contract.
+This does not waive reading business source or target execution interfaces.
+
+At S3, run this single preparation command from the A5 root:
+
+```bash
+"$stage0_python" .agents/skills/add-ascend-op/scripts/extract_tl_kernel.py --gpu-repo-root "$gpu_repo_root" --op-name "$op_name" --stage0-plan
+```
+
+It extracts the transitive helpers and writes `stage0_plan.json` plus
+`stage0_discovery.json` beside the wrapper. Use `metadata_draft` as the starting
+point for meta; fill the explicitly review-required source workload/test/bench
+lists, converted class names, conversion record and creation time. Do not
+reconstruct names, paths, bindings or per-function source maps manually. The
+draft is deliberately not a completed meta and cannot pass gate 0 on its own.
+
+After writing the final meta, run from the outer repository root
+(`$scaffold_dir` is the wrapper directory, outside conductor state directories):
+
+```bash
+"$stage0_python" .agents/tools/stage0_check.py --meta "$meta_path" --emit-prompts --output "$scaffold_dir/stage0_static_checks.json"
+```
+
+If `--output` fails, repair the output path and rerun; no successful report
+may be claimed from an unwritten artifact. The checker reuses gate 0 and checks target Python syntax, extracted functions,
+unresolved global/helper names, manifest source paths, nonempty workloads and
+scoped ruff (when installed), and Python compilation without execution. It never imports operator packages or probes a
+device. Fix reported failures and rerun; do not author ad hoc validators.
+A `static_pass` is only mechanical evidence: it does not validate workload
+semantics, transitive import behavior or substitute for import/pytest collection
+in full Tier 1. No-device runs must report these as unverified.
+
+When the checker reports `next_action=return_to_conductor`, return immediately.
+Do not add duplicate YAML/path checks, py_compile, file inventories or lint.
+A later code change invalidates that result and requires rerunning the checker.
+The checker renders the complete per-function prompt blocks to
+`migration_prompts.md` beside the wrapper with `--emit-prompts`; return that path and a concise
+summary instead of pasting all blocks. All functions remain mandatory; this
+changes transport only. Human invocations retain the inline Output Prompt.
+
 ## Phase 0 — Locate and study the GPU op
 
 Before writing any A5 code, locate and read the GPU op's full end-to-end
@@ -226,10 +271,11 @@ key `{op_name}:`.
 
 **Naming rules**:
 
-- `op_slug` = snake_case of `op_name` without `Fwd`/`Op` suffix when the
-  family groups multiple ops in one file (e.g. `LogSumExpFwdOp` → `softmax.py`
-  because it shares the softmax family file). Otherwise use the op name in
-  snake_case.
+- `op_slug`, task directory and target paths come from the extractor's
+  `--inspect` / `stage0_plan.json`. The tool strips terminal `FwdOp`/`Op`,
+  preserves acronym groups (`IndexedExpertMLPFwdOp` → `indexed_expert_mlp`)
+  and creates per-op target files regardless of source grouping. Never infer
+  target names from a shared GPU test filename.
 - `kernel_key` = `{op_slug}_fwd` (or as appropriate to match the GPU
   `source.kernel_map` key).
 
@@ -671,8 +717,8 @@ functions in S3 Part A have already been reimplemented for
 `target="ascend"` (by a prior conductor run) or are still GPU
 implementations, **every execution of this skill must emit the full set
 of per-kernel prompts for the op**. Implementation status never
-suppresses the prompts — the skill always outputs them as the final
-messages so the conductor can (re-)run the design → review → develop →
+suppresses the prompts — the skill always generates them as final
+artifacts (inline for humans, a prompt file for machine callers) so the conductor can (re-)run the design → review → develop →
 optimize pipeline on demand for each kernel independently.
 
 ### Template
@@ -797,7 +843,7 @@ When this skill is invoked by an automated agent (e.g. `tileops-scaffolder`)
 rather than a human caller, the invocation prompt says so explicitly. Machine
 mode changes only the **output bookkeeping** — all Phases 0-S7 (including
 Tier 1 and the helper completeness check) run unchanged, and the per-kernel
-prompts are still emitted as the final messages.
+prompts are still generated in full (machine mode returns the prompt file path).
 
 For the current src source, run extraction with `--source-info-out <discovery.json>`
 and complete the provenance and conversion fields required by the shared
@@ -839,6 +885,6 @@ Rules:
 - `extracted_functions` is exactly the function list printed by the
   extraction script in S3 Part A.
 - The meta file is overwritten on each (idempotent) re-run.
-- Re-emitting prompts is still mandatory in machine mode (see the
+- Generating the complete prompt file is still mandatory in machine mode (see the
   "Mandatory constraint" above); the meta file supplements, not replaces,
   the prompts.
