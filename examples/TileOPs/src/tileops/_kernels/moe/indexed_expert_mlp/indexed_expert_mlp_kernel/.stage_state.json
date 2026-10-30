@@ -1,0 +1,52 @@
+{
+  "artifact_hashes": {},
+  "budget": {
+    "max_stage4_experiments": 30,
+    "max_subagent_dispatches": 40,
+    "max_wallclock_s": null
+  },
+  "current_stage": 4,
+  "design_md_path": "examples/TileOPs/src/tileops/_kernels/moe/indexed_expert_mlp/indexed_expert_mlp_kernel/DESIGN.md",
+  "env_check_passed": false,
+  "failure_reason": null,
+  "final_artifact": "examples/TileOPs/src/tileops/_kernels/moe/indexed_expert_mlp/indexed_expert_mlp_kernel/perf_opt/_indexed_expert_gemm.py",
+  "kernel_opt_py_path": "examples/TileOPs/src/tileops/_kernels/moe/indexed_expert_mlp/indexed_expert_mlp_kernel/perf_opt/IndexedExpertMLPFwdOp.py",
+  "kernel_py_path": "examples/TileOPs/src/tileops/_kernels/moe/indexed_expert_mlp/indexed_expert_mlp_kernel",
+  "last_failure_reason": null,
+  "last_updated": "2026-10-30T06:09:24Z",
+  "max_retry": 3,
+  "migration_mode": null,
+  "operator_name": "IndexedExpertMLPFwdOp",
+  "perf_feedback": null,
+  "perf_iteration": {
+    "consecutive_no_improvement": 1,
+    "count": 22,
+    "last_improvement": 52.2
+  },
+  "perf_tuning_requested": null,
+  "phase": "DONE",
+  "project_name": "indexed_expert_mlp",
+  "retry_count": 0,
+  "review_md_path": "examples/TileOPs/src/tileops/_kernels/moe/indexed_expert_mlp/indexed_expert_mlp_kernel/REVIEW.md",
+  "scenario": "optimize",
+  "stage3_failure_breakdown": {
+    "precision_fail": 0,
+    "runtime_fail": 0
+  },
+  "stage_plan": [
+    4
+  ],
+  "stage_retry_count": {
+    "0": 0,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 1,
+    "5": 0
+  },
+  "stage_status": {
+    "4": "completed"
+  },
+  "task_id": "indexed_expert_mlp-IndexedExpertMLPFwdOp-20261030T011807Z",
+  "user_requirement": "optimize 场景：TileOPs 集成算子 IndexedExpertMLPFwdOp（moe/indexed_expert_mlp，三 kernel：_route_stats(simd) + _indexed_expert_gemm(mixed) + _weighted_reduce(simd)；Stage 3 已 PRECISION_PASS 且集成 report 全绿：correctness 18/18、benchmark 8/8、roofline 80.03%-97.75%）。目标 best_effort；用户决定三 kernel 全调（GEMM 为主，两向量 kernel 尽力）。benchmark 入口 examples/TileOPs/benchmarks/ops/bench_indexed_expert_mlp.py::test_indexed_expert_mlp_bench。严禁改动 baseline 三 kernel（仅写 perf_opt/）。"
+}

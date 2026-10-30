@@ -1,6 +1,6 @@
 # Stage 0 conversion record — IndexedExpertMLPFwdOp (GPU → Ascend A5)
 
-Source: `/home/zuo/code/TileOPs` @ `3979278e2da6ac4fa84d8c7c800dec64ea9c0425` (clean).
+Source: `/home/l00970450/z00875089/TileOPs` @ `3979278e2da6ac4fa84d8c7c800dec64ea9c0425` (clean).
 Target: `examples/TileOPs/` (A5, `target="ascend"`, dav-3510). Meta:
 `.migration_meta.json` in this directory. Discovery sidecar: `stage0_discovery.json`
 (extractor `--source-info-out`; merged reviewed fields into the meta).

@@ -140,6 +140,53 @@ last_seen: logsumexp（Stage 4 派生实验：SIMT 成员叠加 SIMD 可复用�
 
 > 备注：本条目只登记缺口本体；同任务已把 SIMD 成员的另两项可复用优化（OP-ROWS 持久 tile 行驻留批量化 lse 写回、OP-BLOCKN = tile_n 直保留）成功迁移到 SimtVF 成员并实测增益（attn-32k -16.4%、lm-head -25%），故本缺口不影响「跨模式优化迁移」这一结论的主体，只界定其边界。
 
+### CG-2026-0003
+
+```yaml
+gap_id: CG-2026-0003
+layer: Ascend pass（PrepareMultiBuffer 的 L0C 存储 epoch 分析）+ arith 简化器（const-folding bug）
+capability: >-
+  L0C 累加器（T.gemm 写 / T.copy 读）不能同时处于一个「运行时条件守卫」包裹的流水化 GEMM 内：
+  一旦 T.gemm 与它的 res→UB 拷贝落在 `if <runtime-guard>:` 下且两者守卫不同，PrepareMultiBuffer
+  的 MultiBufferPlanBuilder::Build → AnalyzeStorageEpoch → arith::Analyzer::CanProveEqual 会对守卫表达式
+  做 canonical simplify，把 `cast(bool, sub(const, const))` 经 cast() 工厂折叠成 make_const(bool, v)（v>1），
+  触发 IntImm::IntImm 的 `value == 0 || value == 1` 检查，抛
+  `ValueError: Check failed: (value == 0 || value == 1) is false: 255 exceeds range of bool`，编译中止。
+  守卫形如 `!= 0`/`== 1`/`> 0`/`>= 1` 全部触发（比较形式无关），无论守卫读 T.alloc_var 可变标量还是
+  普通 let-bound 标量（与 alloc_var 无关）；`clear_accum=(ko==0)` 符号 clear 不触发。
+blocked_algo: >-
+  「leader/分组跳过」类优化（按运行时 rank/is_leader 让非 leader 块整块跳过 Cube 流水线 + epilogue）无法实现
+  ——结论形态：无法实现（该优化被迫弃用，降级为「Cube 流水线全块无条件执行 + 仅 epilogue 写回加守卫」，
+  非 leader 块做冗余但语义相同的 gemm，结果不写回）。代价：非 leader 块冗余 gemm 计算（本任务 ds-v3-t64
+  分组 MoE 下非 leader 块占比 ∝ 活跃专家路由数 / block_m=16 分组粒度，可量化但非首跑瓶颈项）。
+evidence:
+  - "复现命令（本仓，2026-10-29）：
+    cd examples/indexed_expert_mlp/_indexed_expert_gemm/repro &&
+    python CONST-PrepareMultiBuffer-bool-cast-255.py
+    → REPRO_OK：tilelang.lower 在 PrepareMultiBuffer 抛 `255 exceeds range of bool`；
+    同脚本已断言失败信息，工具链升级后自动暴露 'REPRO_MISS' 供重验"
+  - "最小化 bisect（/tmp/probe_l00970450/probe_bisect.log，2026-10-29）：8 变体二分——base(clear_accum=True) PASS、
+    clear_ko(clear_accum=(ko==0)) PASS、leader_guard(if is_leader!=0 包 Pipelined+gemm) FAIL、
+    rank_ne PASS、min PASS、mi_guard PASS、full_allocvar FAIL——唯二 FAIL 均含 '运行时守卫包 gemm'，其余构造均 PASS"
+  - "源码定位（3rdparty/tvm）：rewrite_simplify.cc:543 TryConstFold<Sub> → const_fold.h:156
+    （IntImm(rtype=a.dtype(), GetFoldResultInt64Repr(res, rtype))）+ op.cc:439 cast() 工厂
+    `if (const IntImmNode* op = value.as<IntImmNode>()) return make_const(t, op->value)`——cast(bool, IntImm(255))
+    未按 bool 域掩码，直接 make_const(bool, 255) 触发 expr.cc:69 检查。触发链：CanonicalSimplifier::VisitExpr_(CastNode)
+    → RewriteSimplifier::VisitExpr_(SubNode) → TryConstFold<Sub>"
+workaround: >-
+  守卫只包 AIV1 epilogue 写回（`if sid == 1: if is_leader != 0:`），Cube 流水线（AIV0 gather + W 装载 + T.gemm）
+  无条件全块执行；gemm 的 L0C 写回 guard=true，与 epilogue 读的 guard 组合经 CombineGuardTerms 的 is_one 短路
+  直接返回 true，不进入 CanProveEqual。代价见 blocked_algo。落地：_indexed_expert_gemm.py epilogue。
+occurrences: 1
+tasks: [indexed_expert_mlp/_indexed_expert_gemm]
+toolchain_stamp: tilelang-fork dev build（dav-3510，2026-10-29）+ CANN 9.x + Ascend 950（2 NPU）
+status: open
+created_by: indexed_expert_mlp/_indexed_expert_gemm（Stage 3 first_impl，2026-10-29）
+last_seen: indexed_expert_mlp/_indexed_expert_gemm（Stage 3 first_impl，2026-10-29）
+```
+
+> 备注：本条目登记缺口本体（编译器 arith 简化器 const-fold bug，非「运行时守卫」语言层能力缺失——语言层完全支持该模式，缺陷在 pass 组合路径）。绕法经验（守卫只包 epilogue）按 D 类进 pattern-library；两处以 gap_id 互引。
+
 ## Recurring（达升级阈值，待推动补齐）
 
 （暂无条目）
@@ -149,3 +196,26 @@ last_seen: logsumexp（Stage 4 派生实验：SIMT 成员叠加 SIMD 可复用�
 （暂无条目）
 
 > **清零说明（2026-10-16，A5 适配 P0）**：本簿自 tilelang-mlir-fork（npuir/A2A3）整套复制后清零——原 17 条缺口绑定 npuir 工具链（TileLangIR pass/BishengIR/tladapter 分层），不适用于 tilelang-fork（ascend/A5，dav-3510）。schema 与生命周期协议保留，条目由 A5 任务重新登记。
+
+---
+
+## CG-2026-0004
+
+```yaml
+gap_id: CG-2026-0004
+layer: bisheng 编译器 / Ascend pass（InsertNd2Nz 搬运路径）
+capability: GM→L1 ND2NZ 分形直装对「短跨步行段」（行段 ≤1KB、行距 ~14KB 的 W 行主布局）的有效吞吐只有 ~2 B/cyc/AIC——设计期 roofline 的 MTE2 模型（estimate_latency.h 100 B/cyc assumption，CONST-mte-bandwidth-model）高估 ~50×；通道无关（AIV plain 中转实测 -8.4%）、行段长度无关（bk 256/512/1024 同 ~95GB/s 聚合平台），仅流量线性
+blocked_algo: 小 M 分组 MoE expert GEMM（indexed expert MLP gate/up+down）的 W 装载墙——性能上限：t32 gate/up 达 119.3ms（W 流量已到语义下界 896MB 时 mte2 仍 89.7% busy、其余 pipe ≤8.2%），对照 100 B/cyc 模型理论上限差 ~20×
+evidence:
+  - examples/TileOPs/src/tileops/_kernels/moe/indexed_expert_mlp/indexed_expert_mlp_kernel/perf_opt/profiles/final/（OP-D winner msprof_detail：aic_mte2=0.897 gateup / 0.846 down @ t32-fp16；溯源，允许失效）
+  - pattern-library constants.md CONST-mte-nd2nz-short-seg（measured，含三轮证伪链：通道/段长/流量）
+  - 同族先例检索：examples/ascend/{gemm,deepgemm,gemm_splitk} 的 W 装载同为 T.copy GM→L1 ND2NZ 路径，无更优已知结构（morph ladder 检查 2026-10-30）
+workaround: 流量杠杆全部吃满——非 leader 块 W 装载跳过（P-GEMM-LEADER-SKIP-LOADS，+21%/+52% t32 叠 config）+ bk=512（去冗余后段长重新生效，+11-18%）；t32 最终 gate/up +58.7% / down +52.2%，残余墙为形态常数
+occurrences: 1
+tasks: [indexed_expert_mlp-stage4]
+toolchain_stamp: tilelang-fork ascend dev build + CANN 9.2.0 + bisheng dav-3510 + Ascend950PR_9579，2026-10-30
+status: open
+proposal: 待第 2 个独立任务确认后升级 recurring 再补（候选方向：InsertNd2Nz 对 strided 短行段的 copy 合并/事务批处理优化，或 MTE2 形态敏感的代价模型进 estimate_latency.h）
+created_by: indexed_expert_mlp-stage4 + 2026-10-30
+last_seen: indexed_expert_mlp-stage4 + 2026-10-30
+```

@@ -167,3 +167,43 @@ repro: repro-missing
 - 转正方法：Stage 3 编译后首查 spill 计数（`get_kernel_source()` / 编译日志）或 npusim 反解；容量上限值待实测后翻转本条 status。
 - **fragment 层级归属（2026-10-16，logsumexp S2 知识冲突消解）**：A5 SimtVF `T.alloc_fragment` 落 VRF per-thread 寄存器数组、**不占 UB 216KB 预算**——反证：online_softmax 主 shape UB 128KB + x_frag/e_frag 2×128KB fp32 fragment 并存真机编译运行 63/63 PASS（若 fragment 计入 UB 216KB 则该先例不可能编译）；TileOPs `_primitives.py` 的 "planned into UB" 注释为规划口径，与实测冲突时按「实测生成代码 > harness 成本模型注释」消解（生成 AscendC 为 `float x_frag[32]` 寄存器数组，非 UB 数组）。
 - **追加实测样本（2026-10-16，logsumexp 双变体；SUB/行子批封顶把 VRF 从贴顶压到舒适水位）**：single `float x_frag[32]`（SUB=8×TILE=4096 / 1024 threads）+ m/s/out 标量 ≈ 48 regs/thread 无 spill；tiled `float x_frag[16]`（SUB=1×BLOCK_N=16384 / 1024 threads）+ 合并标量无 spill——均低于 76 reg 实测水位；x_frag ≤ 128KB 封顶 + SUB 联合封顶（SUB·BLOCK_N ≤ 32768）是 VRF 预算的主动管理手段（结构见 layout.md P-LAYOUT-ROW-RESIDENCY）。
+
+---
+id: CONST-mte-nd2nz-short-seg
+kind: constant
+family: [gemm, mixed, mte]
+apis: [T.copy, T.gemm]
+dtype: [fp16, bf16]
+device: A5/950 (dav-3510)
+status: measured
+origin_task: indexed_expert_mlp Stage 4（2026-10-30；溯源：该任务 opt_log.md Phase 1 归因 + Round 1/2/3 证伪链——允许失效）
+toolchain: tilelang-fork ascend dev + CANN 9.2.0 + bisheng dav-3510 + Ascend950PR_9579，2026-10-30
+repro: repro-missing
+---
+
+### ND2NZ 短跨步行段 MTE2 形态常数：~2 B/cyc/AIC，通道与行段长度无关（流量是唯一杠杆）
+
+- **实测**（W [E,2F,H] 行主、行段 block_k×2B、行距 14KB 的 ND2NZ 直装）：mte2 82-89% busy 下有效带宽 **~1.8-2.2 B/cyc/AIC**（28 AIC ~44-50GB/s），比 `CONST-mte-bandwidth-model` assumption 低 ~50×；大 tile W 直装 roofline 按 2 B/cyc 折算。
+- 通道无关（AIV 中转 -8.4%）；行段长度无关（bk 256/512/1024 同 ~95GB/s 平台）——去冗余后被打破（leader-only 下 bk512 再 +11-18%，见 P-GEMM-LEADER-SKIP-LOADS）。
+- 归因：ND2NZ fractal 固定开销或短跨步事务限（不可分离）；repro-missing。对冲：流量优化线性换算，通道/段长方向无效。
+- **分组 MoE GEMM 全链印证（VP-2026-0047 折入，双任务）**：W-MTE2 主导——migration 期 report roofline 80.03–97.75%（8/8 case）+ Stage 4 直测 winner mte2 89.7%/84.6%（其余 pipe ≤8.2/17.9%）；bn/bk/ns 扫描不敏感（七点 -42~-48% 后触顶），唯一敏感维 = W 流量；**语义下界核算**：每活跃 expert 恰读一次（t32 c_e=1：16 expert×58.7MB=896MB 组间无共享；c_e=2 同 expert routes 稳定序同组共享）——baseline 因 `CONST-PrepareMultiBuffer-bool-cast-255` 规避冗余 1.58–2.32×，leader-skip 消除后到下界。
+
+---
+
+---
+id: CONST-scalar-ub-scan-latency
+kind: constant
+family: [simd, scan]
+apis: [T.serial, T.SimdVF]
+dtype: [int32]
+device: A5/950 (dav-3510)
+status: measured
+origin_task: indexed_expert_mlp Stage 4 route_stats 裁决 A/B（2026-10-30；溯源：该任务 logs/round2/ab_route_stats.log——允许失效）
+toolchain: tilelang-fork ascend dev build + CANN 9.2.0 + bisheng dav-3510 + Ascend950PR_9579，2026-10-30
+repro: repro-missing
+---
+
+### 标量 UB 扫描链 c_scan ≈ 700-800 cyc/iter（UB 标量访问延迟主导）
+
+- **实测**（route_stats 标量 scan，R=256/512 一致）：每迭代（3-5 次 UB 标量访问+分支）≈ **700-800 cyc**，比设计假设 10-15 cyc/iter 高 ~50×；链段 ≈100µs（R=256）/200µs（R=512）。
+- 批式向量对照：63 步 vselr 链+掩蔽 ≈ **12 cyc/op**（t64 反解）。标量→向量化收益按周期常数比（~60×）估算，不按 op 数比。repro-missing。

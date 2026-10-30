@@ -54,12 +54,33 @@ from typing import Optional
 import torch
 
 from tileops._kernels.kernel_base import Kernel
-from tileops._kernels.moe.indexed_expert_mlp._indexed_expert_m_l_p_fwd_kernels import (
+# ---------------------------------------------------------------------------
+# Kernel source selection: baseline vs perf_opt (Stage 4 tuned)
+#
+# Exactly one source block below is active; toggle by swapping the comment.
+# Default policy: the perf_opt source becomes active once tuned drop-in
+# kernels (same factory signatures) land at
+# .indexed_expert_mlp_kernel/perf_opt/{func}.py and pass their L0/L1 regression;
+# the baseline (Stage 3) source is active otherwise.  ``pytest tests/ops/``
+# and ``pytest benchmarks/ops/`` dispatch through whichever source is
+# active here.
+# ---------------------------------------------------------------------------
+# --- baseline (Stage 3) ------------------------------------------------------
+# from .indexed_expert_mlp_kernel import (
+#     _indexed_expert_gemm,
+#     _route_metadata_size,
+#     _route_stats,
+#     _weighted_reduce,
+# )
+# --- perf_opt (Stage 4 tuned) ------------------------------------------------
+from .indexed_expert_mlp_kernel.perf_opt._indexed_expert_gemm import (
     _indexed_expert_gemm,
-    _route_metadata_size,
-    _route_stats,
-    _weighted_reduce,
+    TUNED_DOWN_CONFIG,
+    TUNED_GATEUP_CONFIG,
 )
+from .indexed_expert_mlp_kernel.perf_opt._route_stats import _route_metadata_size
+from .indexed_expert_mlp_kernel.perf_opt._route_stats import _route_stats
+from .indexed_expert_mlp_kernel.perf_opt._weighted_reduce import _weighted_reduce
 from tileops.backend.device import get_device_backend
 
 __all__ = [
@@ -196,6 +217,16 @@ class IndexedExpertGEMMTemplate(Kernel):
 
     @property
     def default_config(self) -> dict:
+        # --- perf_opt (Stage 4 tuned) ---
+        # The tuned kernels were selected for block_k=512. That config only fits
+        # on-grid shapes (k % 512 == 0 and n % 128 == 0): the kernel then skips
+        # the off-grid W-staging buffer. All 8 benchmark workloads are on-grid at
+        # this config. Off-grid shapes (correctness-test small H/F) fall through
+        # to the baseline heuristic below — block_k=512 there would allocate the
+        # off-grid W-staging buffer (n_gemm * block_k) and overflow UB.
+        if self.n % 128 == 0 and self.k % 512 == 0:
+            return dict(TUNED_GATEUP_CONFIG if self.activation != "none" else TUNED_DOWN_CONFIG)
+        # --- baseline (Stage 3) heuristic (off-grid fallback) ---
         block_n = (
             128 if self.route_input and (self.num_tokens == 1 or self.num_tokens >= 16) else 64
         )
