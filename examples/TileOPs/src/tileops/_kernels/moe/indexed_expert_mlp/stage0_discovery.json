@@ -1,6 +1,6 @@
 {
   "source_layout": "src",
-  "gpu_repo_root": "/home/zuo/code/TileOPs",
+  "gpu_repo_root": "/home/l00970450/z00875089/TileOPs",
   "gpu_source": {
     "manifest_path": "src/tileops/manifest/spec/moe.yaml",
     "op_path": "src/tileops/_ops/moe/routed_expert/indexed_routed_expert.py",

@@ -19,7 +19,7 @@ IndexedExpertMLPFwdOp 的规格见 examples/TileOPs/src/tileops/manifest/spec/mo
 精度用例见 examples/TileOPs/tests/ops/test_indexed_expert_mlp.py，
 性能用例见 examples/TileOPs/benchmarks/ops/bench_indexed_expert_mlp.py
 编程模式由 Stage 1 设计裁定（默认 simt，auto_schedule yes）；kernel 模块 docstring 须声明 programming_mode: simt|simd|mixed。
-上下文：原始定义 src/tileops/_kernels/moe/indexed_expert_gemm.py（GPU 仓根 /home/zuo/code/TileOPs，见 meta gpu_source.function_sources）；本函数是单 block 路由统计 kernel（per-expert 计数 + per-route 秩 + 每 expert 路由列表，metadata 布局 E + T*K + E*T int32，含 T.atomic_add return_prev=True），A5 wrapper 调用形如 self.kernel(**self.config)(expert_ids, out)，config 为空 dict（threads 已按 K3/K9 移除，线程域由重实现内部 T.SimtVF 声明）；分支谓词 grouped_dispatch = (T > 1) 见 conversion_record.md §3。
+上下文：原始定义 src/tileops/_kernels/moe/indexed_expert_gemm.py（GPU 仓根 /home/l00970450/z00875089/TileOPs，见 meta gpu_source.function_sources）；本函数是单 block 路由统计 kernel（per-expert 计数 + per-route 秩 + 每 expert 路由列表，metadata 布局 E + T*K + E*T int32，含 T.atomic_add return_prev=True），A5 wrapper 调用形如 self.kernel(**self.config)(expert_ids, out)，config 为空 dict（threads 已按 K3/K9 移除，线程域由重实现内部 T.SimtVF 声明）；分支谓词 grouped_dispatch = (T > 1) 见 conversion_record.md §3。
 ```
 
 ---
@@ -33,7 +33,7 @@ IndexedExpertMLPFwdOp 的规格见 examples/TileOPs/src/tileops/manifest/spec/mo
 精度用例见 examples/TileOPs/tests/ops/test_indexed_expert_mlp.py，
 性能用例见 examples/TileOPs/benchmarks/ops/bench_indexed_expert_mlp.py
 编程模式由 Stage 1 设计裁定（默认 simt，auto_schedule yes）；kernel 模块 docstring 须声明 programming_mode: simt|simd|mixed。
-上下文：原始定义 src/tileops/_kernels/moe/indexed_expert_gemm.py（GPU 仓根 /home/zuo/code/TileOPs，见 meta gpu_source.function_sources）；本函数是 route 索引 expert GEMM 模板（block_m=16、dispatch_mode direct|grouped、route_input 直通|组行装载、gated silu_and_mul epilogue 融合，T.Kernel(num_routes*n_blocks, threads=threads) 二维索引 pid 分解 + T.gemm(transpose_B=True)），A5 wrapper 调用形如 self.kernel(**{"block_n","block_k","num_stages"})(a, weights, expert_ids, route_metadata, out)（threads 按 K3/K9 移除；A5 为一维 T.Kernel，GEMM 主导候选 MixedKernel/Cube 路径见 docs/gpu_to_ascend_adaptation.md §2.3）；A5 wrapper 侧两个实例化：IndexedExpertGateUpKernel（activation=silu_and_mul, route_input=False, n=F, k=H）与 IndexedExpertDownKernel（activation=none, route_input=True, n=H, k=F）见 conversion_record.md §3。
+上下文：原始定义 src/tileops/_kernels/moe/indexed_expert_gemm.py（GPU 仓根 /home/l00970450/z00875089/TileOPs，见 meta gpu_source.function_sources）；本函数是 route 索引 expert GEMM 模板（block_m=16、dispatch_mode direct|grouped、route_input 直通|组行装载、gated silu_and_mul epilogue 融合，T.Kernel(num_routes*n_blocks, threads=threads) 二维索引 pid 分解 + T.gemm(transpose_B=True)），A5 wrapper 调用形如 self.kernel(**{"block_n","block_k","num_stages"})(a, weights, expert_ids, route_metadata, out)（threads 按 K3/K9 移除；A5 为一维 T.Kernel，GEMM 主导候选 MixedKernel/Cube 路径见 docs/gpu_to_ascend_adaptation.md §2.3）；A5 wrapper 侧两个实例化：IndexedExpertGateUpKernel（activation=silu_and_mul, route_input=False, n=F, k=H）与 IndexedExpertDownKernel（activation=none, route_input=True, n=H, k=F）见 conversion_record.md §3。
 ```
 
 ---
@@ -47,5 +47,5 @@ IndexedExpertMLPFwdOp 的规格见 examples/TileOPs/src/tileops/manifest/spec/mo
 精度用例见 examples/TileOPs/tests/ops/test_indexed_expert_mlp.py，
 性能用例见 examples/TileOPs/benchmarks/ops/bench_indexed_expert_mlp.py
 编程模式由 Stage 1 设计裁定（默认 simt，auto_schedule yes）；kernel 模块 docstring 须声明 programming_mode: simt|simd|mixed。
-上下文：原始定义 src/tileops/_kernels/moe/indexed_expert_gemm.py（GPU 仓根 /home/zuo/code/TileOPs，见 meta gpu_source.function_sources）；本函数是加权归约 kernel（fp32 累加 sum_k expert_output[t,k,:]*topk_weights[t,k] × scaling 后 cast 写回 [T,H]；GPU 以 threads=256 一维分块 + T.get_thread_binding 展平索引），A5 wrapper 调用形如 self.kernel(**self.config)(expert_output, topk_weights, output)，config 为空 dict（threads 已按 K3/K9 移除）；elementwise 归约族参考 docs/gpu_to_ascend_adaptation.md §2.1/§2.2。
+上下文：原始定义 src/tileops/_kernels/moe/indexed_expert_gemm.py（GPU 仓根 /home/l00970450/z00875089/TileOPs，见 meta gpu_source.function_sources）；本函数是加权归约 kernel（fp32 累加 sum_k expert_output[t,k,:]*topk_weights[t,k] × scaling 后 cast 写回 [T,H]；GPU 以 threads=256 一维分块 + T.get_thread_binding 展平索引），A5 wrapper 调用形如 self.kernel(**self.config)(expert_output, topk_weights, output)，config 为空 dict（threads 已按 K3/K9 移除）；elementwise 归约族参考 docs/gpu_to_ascend_adaptation.md §2.1/§2.2。
 ```

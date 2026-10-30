@@ -102,3 +102,50 @@ repro: repro-missing
 - Stage 4 终局（6 tune workload，do_bench(msprof) baseline→final µs）：single 4k-f16 10.862→10.217（+5.9%）/ 4k-bf16 10.879→10.119（+7.0%）/ 3d-f16 11.308→10.703（+5.4%）；tiled 32k-bf16 72.439→51.636（**+28.7%**，f16max + `_pick_rows` ROWS 策略；mte2 85.7% 搬运墙，有效读带宽 1.27–1.30TB/s、roofline 75.2%）/ lm-head-f16 6.728→5.632（+16.3%）/ lm-head-bf16 6.803→5.669（+16.7%）。**SIMD baseline 全面 1.2–2.6x 快于 SIMT 兄弟 final**（4k 10.9 vs 21.5µs、lm-head 6.7 vs 17.7µs——结构优势，跨结构外推禁止反向成立）；§8.3 A/B 实测裁决 BLOCK_N=tile_n(25600) 胜出 16384 档 −52%（SimdVF 反甜点，layout.md P-LAYOUT-ROW-RESIDENCY SimdVF 补充段）；lm-head M=4 4/56 核激活但 N-split 估算 ~1.2–1.4x < 2x 门槛 → [DESIGN_LIMIT] 不触发（与 SIMT 兄弟 ~2.5x 结论同现象不同结构判定，algorithm-candidates.md ALG-reduction R2 注记）。3 轮 stop=plateau；实测否决集：unroll4/EVEN-ODD pair/maskhoist（scalar 三假设）、slab/SUB 下探（波次再平衡 family）、BLOCKN 16384/51200。
 - 流程教训（详见 queue）：检视 Subagent 上下文超长触发 2 次 compaction 基础设施失败（2873s = 会话 12.5%，VP-2026-0036）；tiled v0 wrapper 落点手算错误跨任务复发（VP-2026-0025 第二族证据——知识库条目被检索返回但子句未被设计期消费）。数据卫生：迁移期 report 的 lm-head-bf16 0.66µs 与 Stage 4 双批次×5 采样基线 6.803µs 不符（report 侧测量伪影，同结构 fp16 双胞胎 6.65µs 佐证；以 Stage 4 协议为准）。
 - 效率画像（SESSION_TIMING_ANALYSIS，迁移会话 23029s ≈ 6.4h）：检视环节 37.9%（tiled 复检 4 dispatch，其中 compaction 12.5%）；设计修订 ~22%（v0 落点错误返工链）；S3 双函数合计 12.2%（均首过，84+69 用例 max_diff 全 0）；Stage 5 1.7%。optimize 侧首轮 gate 4 工件完整性 14 条失败 → 重派 remediation（consolidated 工件契约，VP-2026-0039）。
+
+---
+id: CASE-indexed-expert-mlp
+kind: case
+family: [moe, gemm, reduction]
+apis: [T.MixedKernel, T.gemm, T.SimdVF, T.simd.vcvt, T.simd.vor, T.simd.vmula, T.fill, T.serial, T.copy]
+dtype: [fp16, bf16, int32]
+device: A5/950 (dav-3510)
+status: measured
+origin_task: indexed_expert_mlp（migration-harness 三函数，2026-10-29；溯源：examples/indexed_expert_mlp/ 任务工件 + 集成包 + reports/tileops/20261029_204631_566537_IndexedExpertMLPFwdOp/——允许失效）
+toolchain: tilelang 0.1.15（fork build，report git_commit a2a92cf9）+ CANN 9.2.0 + bisheng 15.0.5 + Ascend950PR_9579，2026-10-29
+repro: repro-missing
+---
+
+### examples/indexed_expert_mlp/ — MoE 混合模式三函数迁移案例（simd 元数据 + mixed 分组 GEMM + simd 加权归约；多 Kernel 类异构模式集成；三类修订范式；溯源允许失效）
+
+- 触发条件：MoE / 专家路由类算子迁移（route 统计 → 索引专家 GEMM → 加权归约数据流）；多 Kernel 类异构编程模式（纯向量 simd + Cube mixed）同包集成；小 M（block_m=16）分组 GEMM；16-bit 输出偶奇拆分尾声。
+- 要点：① `_route_stats`（simd）：SimdVF 单块元数据 kernel——VF 域内仅 `T.fill`（64-lane 整除 padding）+ VF 域外标量 `T.serial` 扫描（运行时值作 UB 索引合法）+ 双端 `T.copy` bulk；route metadata 双射自由度（任意自洽 rank 双射下 grouped 消费输出 bitwise 不变）支撑 `torch.equal` 精确比对 + CPU 契约断言双层。② `_indexed_expert_gemm`（mixed）：`T.MixedKernel(grid, sids=2)` 三核结构（AIV0 gather + 公共 Cube + AIV1 epilogue）；「源 OOB 越界读 + 掩码不可观察」GPU 优化承接 = 编译期 on/off-grid 双路径 + 零填承重；每 AIV 私有 staging 副本（UB per-AIV 私有、AIC 不写 UB）；W-traffic 主导 roofline（t64 两实例 22.5GB → ≈8.05M cyc，Cube 5.1× 余量——分组/padding 参数不敏感，唯一优化目标 = 最小化 W 流量）；40/40 用例（max_diff 0.0~5.0e-01 最大档 = silu_and_mul 大绝对值元素 fp32 累加序舍入、2/2048 元素、联合容差内——裸 max_diff 判读会误判）。③ `_weighted_reduce`（simd）：K-中间归约轴纵向惯例（BRC_B32 权重广播 + NORM 装载 + `vcvt(part=0/1)` 偶奇加宽 + `vmula`）与偶奇收窄尾声（`vcvt(part)` + `T.reinterpret` ×2 + `T.simd.vor` + `NORM_B16` 单发 128 元素）真机全组合直测（「组合层面未知」首验项首跑即过）；h-chunk 取 H 除数使 extent 编译期静态。④ 陷阱：运行时守卫包流水化 gemm（traps-compiler.md CONST-PrepareMultiBuffer-bool-cast-255，repro 已转正 repro/CONST-PrepareMultiBuffer-bool-cast-255.py）；off-grid 运行期钳制 extent `T.copy` 静默 OOB 产 NaN（per-element 有界守卫 + 零填替代）；`vcvt` 窄化默认饱和 vs torch `.to` 非饱和的 corner 语义差（corner 集压入可表示域）。
+- 三类设计修订范式（各 1 次 Path A，根因互异）：负向断言假前提（vgather/vscatter 假阴性——「自述已枚举」与「局部读取引用文件」均漏检，依据换真 + Θ(B) 链重推 + 实验裁决三件套）；穷举声明缺轴（split-K 轴缺失——轴集合应从候选库命中行反向导出）；自证式 verify_equiv 漏检（vcvt part 偶/奇置换 bug——双路径同源机械 PASS，负对照检出能力实证）。
+- Stage 5 集成（零 attempt；wrapper 绝对→相对导入胶水改写一次通过）：correctness 18/18（avg max abs err 2.14e-06）+ benchmark 8/8 msprof roofline 80.03%–97.75%（t1 97.7% / t64 85.6% / qwen3-235b-t32 fp16 80.0%——W-MTE2 主导与设计期估算一致）。gate 5 `S5-PROG-MODE` 机械误报（4 个 Kernel 类异构模式被「包级模式同质」假设拒绝，功能全绿）→ queue VP-2026-0053。效率画像（44062s ≈ 12.2h）：三函数各 1 次 Path A 修订（合计 ~200min）；S2 含 1 次 34min compaction infra 重调（VP-2026-0036 族）+ 2 次 S1 门禁窄修复；S3 全首过（987/5751/1404s）；S5 74.3min（msprof 屋顶线采集 ~65min = 8 case × 6–10min——GB 级权重 workload 编排按小时级预算）。
+
+---
+id: P-GEMM-LEADER-SKIP-LOADS
+kind: pattern
+family: [gemm, mixed, moe]
+apis: [T.copy, T.gemm, T.Pipelined, T.MixedKernel]
+dtype: [fp16, bf16]
+device: A5/950 (dav-3510)
+status: measured
+origin_task: indexed_expert_mlp Stage 4 round 3（2026-10-30；溯源：该任务 perf_opt/_indexed_expert_gemm_round3_leaderload.py 分支 + opt_log.md Round 3 + final 表——允许失效）
+toolchain: tilelang-fork ascend dev + CANN 9.2.0 + bisheng dav-3510 + Ascend950PR_9579，2026-10-30
+repro: repro/P-GEMM-LEADER-SKIP-LOADS.py
+---
+
+### 分组 GEMM 非 leader 块的 W 装载流量跳过（守卫只包 W copy，不包 T.gemm）
+
+- 适用条件：非 leader 块因 `CONST-PrepareMultiBuffer-bool-cast-255` 被迫全量跑 K 流水——W 流量放大 R/组数 倍（实测 1.58×–2.32×）。
+- 优化点（delta 见 repro 骨架）：`if on_grid and is_leader != 0:` 只包两个 W GM→L1 copy；`T.gemm` 保持无条件——非 leader 块消费 stale w_l1，其结果本就不写回，无观察效应；L0C 写读仍同守卫配平。
+- 实测（do_bench(msprof) 交错）：gate/up t32 +21.1%、down t32 +52.2%（均叠加 bk512）；final gate/up +30~70%、down +52~59%。与 `CONST-mte-nd2nz-short-seg` 联动：流量唯一杠杆，去冗余线性换算。反模式（已证伪）：换 AIV 通道（-8.4%）；去冗余前 bk 加长。
+
+---
+
+### examples/indexed_expert_mlp/ Stage 4 调优补记（2026-10-30）
+
+- gate/up + down：OP-D leader-only W 装载（P-GEMM-LEADER-SKIP-LOADS）+ 统一 config (128,512,2)（grouped；t1 down 保持 baseline 128:256:2，direct 模式 bk512 实测 -5.7%）；final gate/up +30.3~+70.4%、down +52.2~+59.5%。
+- route_stats：§1.6.4 裁决三件套执行，批式向量 scan 备选**翻转**（0.292×/0.322×/0.639× @ t64/t32/(17,2,18)，阈值 0.8×）——63 步 vselr 链 + last-occurrence vscatter 回写，kernel 级 -68~-71%（`TRAP-SIMD-SCAN-FORMS` 陷阱即此分支沉淀）。
+- weighted_reduce：§5.4 微调清单全为 op 级收益（≤0.003% 管线）低于分辨力——no_gain 不占实验预算。

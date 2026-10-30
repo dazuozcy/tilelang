@@ -904,25 +904,45 @@ def _perf_records_workload_lint(
         measurements.setdefault(key, {}).setdefault(rec["phase"], []).append(rec)
         if rec["phase"] == "final":
             final_versions.setdefault(rec["kernel_id"], set()).add(rec["candidate_id"])
-            if final_artifact_path:
-                recorded_path = rec["artifact_path"]
-                if not os.path.isabs(recorded_path):
-                    recorded_path = os.path.join(os.path.dirname(records_path), recorded_path)
-                if os.path.normcase(os.path.abspath(recorded_path)) != os.path.normcase(os.path.abspath(final_artifact_path)):
+            recorded_path = rec["artifact_path"]
+            if not os.path.isabs(recorded_path):
+                recorded_path = os.path.join(os.path.dirname(records_path), recorded_path)
+            recorded_abs = os.path.normcase(os.path.abspath(recorded_path))
+            final_abs = (
+                os.path.normcase(os.path.abspath(final_artifact_path))
+                if final_artifact_path
+                else None
+            )
+            # Single-kernel ops declare one op-level final (perf_opt/{op}.py);
+            # multi-kernel ops have no single op-level final and record per-kernel
+            # finals (perf_opt/_<kernel>.py). In both cases verify the recorded
+            # file exists and its content hash matches what was measured.
+            if final_abs is not None and os.path.isfile(final_abs):
+                if recorded_abs != final_abs:
                     fail(
                         "S4-PERF-RECORDS-RECON",
                         records_path,
                         f"{key} final 未测最终 perf_opt 文件",
                     )
-                elif os.path.isfile(final_artifact_path):
-                    with open(final_artifact_path, "rb") as handle:
-                        actual_hash = hashlib.sha256(handle.read()).hexdigest()
-                    if rec["artifact_sha256"] != actual_hash:
-                        fail(
-                            "S4-PERF-RECORDS-RECON",
-                            records_path,
-                            f"{key} final 文件哈希与采集时不一致",
-                        )
+                    continue
+                verify_path = final_abs
+            else:
+                verify_path = recorded_path
+            if not os.path.isfile(verify_path):
+                fail(
+                    "S4-PERF-RECORDS-RECON",
+                    records_path,
+                    f"{key} final 工件文件不存在：{verify_path}",
+                )
+            else:
+                with open(verify_path, "rb") as handle:
+                    actual_hash = hashlib.sha256(handle.read()).hexdigest()
+                if rec["artifact_sha256"] != actual_hash:
+                    fail(
+                        "S4-PERF-RECORDS-RECON",
+                        records_path,
+                        f"{key} final 文件哈希与采集时不一致",
+                    )
 
     for key, kind in expected.items():
         if kind != "tune":
@@ -1163,9 +1183,23 @@ def perf_lint(
     repo_root: str,
 ):
     failures, warnings = [], []
-    f, w = kernel_lint(perf_py_path, op_name, rule_prefix="S4")
-    failures += f
-    warnings += w
+    if os.path.isfile(perf_py_path):
+        f, w = kernel_lint(perf_py_path, op_name, rule_prefix="S4")
+        failures += f
+        warnings += w
+    elif os.path.isfile(records_path):
+        # Multi-kernel op: no single op-level final (perf_opt/{op}.py); the
+        # per-kernel finals (perf_opt/_<kernel>.py) are recorded in perf_records
+        # and SHA256-verified by perf_records_lint below.
+        warnings.append(
+            _warn(
+                "S4-EXISTS",
+                perf_py_path,
+                "op 级 final 文件不存在（多 kernel op，逐 kernel final 由 perf_records 对账校验）",
+            )
+        )
+    else:
+        failures.append(_fail("S4-EXISTS", perf_py_path, "kernel 文件不存在或为空"))
     log = _read_text(opt_log_path)
     if log is None or not log.strip():
         failures.append(_fail("S4-OPTLOG", opt_log_path, "perf_opt/opt_log.md 不存在或为空"))

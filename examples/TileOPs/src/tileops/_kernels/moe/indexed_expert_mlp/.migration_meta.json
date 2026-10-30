@@ -2,7 +2,7 @@
   "op_name": "IndexedExpertMLPFwdOp",
   "op_slug": "indexed_expert_mlp",
   "family": "moe",
-  "gpu_repo_root": "/home/zuo/code/TileOPs",
+  "gpu_repo_root": "/home/l00970450/z00875089/TileOPs",
   "kernel_class_name": "IndexedExpertGateUpKernel",
   "kernel_class_names": [
     "IndexedRouteStatsKernel",
